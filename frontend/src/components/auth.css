@@ -1,0 +1,270 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+.authBody{
+    /* position: relative; */
+    height:100vh;
+    width:100vw;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: rgb(255, 255, 244);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.container{
+    position: relative;
+    background-color:beige;
+    width:400px;
+    height:520px;
+    border:2px solid black;
+    border-radius:10px;
+    box-shadow:5px 5px 0 black;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transition:transform .2s ease, box-shadow .2s ease;
+}
+
+.container:hover{
+    box-shadow:10px 10px 0 #2d3436;
+    transform:translate(-2px,-2px);
+}
+
+.btnContainer{
+    height:65px;
+    width:100%;
+    display:flex;
+    background-color:aliceblue;
+    border-bottom:2px solid black;
+}
+
+.login{
+    display:flex;
+    flex:1;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    transition:background-color .2s ease-in;
+}
+
+.register{
+    display:flex;
+    flex:1;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    transition:background-color .2s ease-in;
+}
+
+.login:hover, .register:hover{
+    background-color:rgb(208, 231, 252);
+}
+.btn{
+    font-size:large;
+    font-weight:700;
+    color:black;
+    text-transform:uppercase;
+    letter-spacing:1px;
+}
+.body{
+    position: relative;
+    height:100%;
+    background:white;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+}
+.message{
+    min-height:20px;
+    margin-bottom:15px;
+    text-align:center;
+    color:#346739;
+    font-weight:600;
+    font-size: large;
+    animation:in .4s ease-out;
+}  
+
+@keyframes in{
+    from{
+        opacity:0;
+        transform:translateY(-5px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+.loginContainer{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.registerContainer{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.input{
+    width:100%;
+    padding:12px;
+    font-size: large;
+    color:#202940;
+    border:2px solid black;
+    border-radius:5px;
+    background-color:white;
+    outline:none;
+    transition:border-color .2s ease, background-color .2s ease;
+}
+
+.otpInput{
+    padding:12px;
+    width:100%;
+    background:white;
+    font-size: large;
+    color:#202940;
+    border:2px solid black;
+    border-radius:5px;
+    outline: none;
+    transition:border-color .2s ease, background-color .2s ease;
+}
+
+.correctPassInput{
+    width:100%;
+    padding:12px;
+    font-size: large;
+    color: black;
+    background-color:white;
+    border:2px solid black;
+    border-radius:5px;
+    outline:none;
+    transition:border-color .2s ease, background-color .2s ease;
+}
+
+.input:focus, .otpInput:focus, .correctPassInput:focus{
+    border-color:#346739;
+}
+
+.btnS{
+    margin-top:10px;
+    padding:12px;
+    background-color:aliceblue;
+    color:black;
+    font-size:large;
+    font-weight:800;
+    border:2px solid black;
+    border-radius:5px;
+    box-shadow:4px 4px 0 black;
+    cursor:pointer;
+    transition:transform .1s ease-in, box-shadow .1s ease-in, background-color .1s ease-in;
+}
+
+.btnS:hover{
+    transform:translateY(-2px);
+    background-color:#346739;
+    color:white;
+    box-shadow:6px 6px 0 black;
+}
+
+.btnS:active{
+    transform:translateY(2px);
+    box-shadow:2px 2px 0 black;
+}
+
+.forgot{
+    display:flex;
+    gap:5px;
+    align-items:center;
+}
+
+.otpBtn{
+    padding:10px;
+    border:2px solid black;
+    border-radius:5px;
+    background-color:aliceblue;
+    color:black;
+    font-weight:700;
+    cursor:pointer;
+    transition:background-color .1s ease-in;
+}
+
+.otpBtn:disabled{
+    opacity:.7;
+    cursor:not-allowed;
+}
+
+.otpBtn:hover{
+    background-color:#346739;
+    color:white;
+}
+
+.forgotPass{
+    margin-top:10px;
+    color:#346739;
+    font-size:small;
+    text-decoration:underline;
+    opacity:.8;
+    border:none;
+    background:none;
+    transition:opacity .2s ease-out, color .3s ease-out;
+}
+
+.forgotPass:hover{
+    opacity:1;
+    color:black;
+}
+
+.forgotPass:disabled{
+    opacity:.4;
+    cursor:not-allowed;
+}
+
+.correctPassword{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%);
+    z-index:3;
+    width: 90%;
+    padding:25px;
+    background:white;
+    border:3px solid black;
+    border-radius:15px;
+    box-shadow:15px 15px 0 black;
+}
+
+.newMessage{
+    min-height:20px;
+    margin-bottom:15px;
+    color:#346739;
+    font-size:large;
+    font-weight:600;
+    text-align:center;
+}
+
+.correctPassBtn{
+    width:100%;
+    margin-top:15px;
+    padding:10px;
+    background-color:#346739;
+    border:2px solid black;
+    border-radius:5px;
+    box-shadow:4px 4px 0 black;
+    color:white; 
+    cursor:pointer;
+}
+
+@media(max-width:500px){
+    .container{
+        margin: 0 10px;
+        width:100%;
+        height: 90%;
+        min-height:500px;
+    }
+}
