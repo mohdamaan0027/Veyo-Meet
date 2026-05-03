@@ -1,0 +1,47 @@
+*{
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+.homeBody{
+    height: 100vh;
+    width: 100vw;
+    background-color: red;
+    display: grid;
+    grid-template-rows: 1fr 19fr;
+}
+.searchMeetingsInputContainer{
+    padding: 5px;
+}
+.searchMeetings{
+    height: 100%;
+    width: 100%;
+}
+.homeManageBody{
+    height: 100%;
+    width: 100%;
+    background-color: blue;
+    grid-template-rows: 1fr 19fr;
+    padding: 0 5px;
+}
+.homeManageBtn{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 2px;
+    height: 10%;
+    width: 100%;
+}
+.homeBtn{
+    background-color: beige;
+}
+.homeManageContainer{
+    height: 100%;
+    width: 100%;
+    background-color: white;
+}
+.createMeetingSection{
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}

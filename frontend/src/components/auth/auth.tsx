@@ -168,9 +168,10 @@ function Auth () {
             if(res.data == 0){
                 setNewMessage('oops! something went wrong');
             }else {
-                setNewMessage('good to go!');
+                setMessage('Now, login with new password');
+                setForgot(false);
+                setCorrectPassword(false);
                 setIsVerified(false);
-                navigate('/home');
             }
         } catch (error) {
             console.log(error)

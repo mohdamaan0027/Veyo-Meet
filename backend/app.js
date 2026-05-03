@@ -4,11 +4,47 @@ import cors from 'cors';
 import pg from 'pg';
 import {router} from './routes/routes.js'
 import nodemailer from 'nodemailer';
+import {Server} from 'socket.io';
+import {createServer} from 'http'
+// import { disconnect } from 'cluster';
 
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
 const {Client} = pg;
+
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST']
+  }
+});
+
+io.on('connection', (socket)=>{
+
+  console.log('connected with id:', socket.id)
+
+  socket.on('dbUpdate', async (data)=>{
+    const {email} = data.user;
+    const {socket} = data;
+    console.log(`connected email: ${email} with id: ${socket}`)
+    try {
+      await db.query('UPDATE users SET socket = $1 WHERE email = $2', [socket, email])
+    } catch (error) {
+      console.log(error)
+    }
+  })
+
+  socket.on('roomJoin', (data)=>{
+    console.log(data)
+  })
+
+  socket.on('disconnect', ()=>{
+    console.log('disconnected with id:', socket.id)
+  })
+
+})
 
 export const db = new Client({
   user: 'postgres',
@@ -41,10 +77,6 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(router);
 
-app.get('/', (req, res)=>{
-    res.send('hey');
-})
-
-app.listen(3000, ()=>{
+server.listen(3000, ()=>{
     console.log('Server is running on port 3000');
 })

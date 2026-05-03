@@ -1,6 +1,6 @@
 import {db} from '../app.js';
 import { transporter } from '../app.js';
-import bcrypt from 'bcrypt';
+import bcrypt, { compareSync } from 'bcrypt';
 import {z} from 'zod';
 import jwt from 'jsonwebtoken';
 
@@ -198,4 +198,23 @@ const getMe = async (req, res)=>{
     }
 }
 
-export {auth, myOtp, otpCheck, submitPass, getMe};
+const createMeeting = async(req, res)=>{
+    const {userId, roomId, roomPass} = req.body;
+    if(!userId || !roomId) return;
+    try {
+        const result = await db.query('INSERT INTO rooms(room_id, password, leader) VALUES($1, $2, $3) RETURNING *', [roomId, roomPass, userId]);
+        const id = result.rows[0].id;
+        try {
+            await db.query("UPDATE users SET rooms = array_append(COALESCE(rooms, '{}'::int[]), $1::int) WHERE id = $2", [id, userId]);
+            res.status(200).send('success');
+        } catch (error) {
+            console.log(error);
+            res.status(400).send(error);
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(400).send(error)
+    }
+}
+
+export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting};

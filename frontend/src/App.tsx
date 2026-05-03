@@ -1,7 +1,7 @@
 // import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Home from './components/home.tsx';
-import Auth from './components/auth.tsx';
+import Home from './components/home/home.tsx';
+import Auth from './components/auth/auth.tsx';
 
 function App() {
 
