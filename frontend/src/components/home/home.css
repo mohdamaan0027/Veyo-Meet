@@ -2,46 +2,198 @@
     padding: 0;
     margin: 0;
     box-sizing: border-box;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-.homeBody{
+.home{
     height: 100vh;
     width: 100vw;
-    background-color: red;
-    display: grid;
-    grid-template-rows: 1fr 19fr;
+    background-color: rgb(255, 255, 244);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
-.searchMeetingsInputContainer{
+.homeLogout{
+    z-index: 3;
+    height: 50px;
+    width: 80px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 20px;
+    background-color: rgba(255, 0, 0, 0.856);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    border: 2px solid black;
+    font-size: 16px;
+    font-weight: 800;
     padding: 5px;
+    box-shadow: 5px 5px black;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease-in, background-color 0.2s ease-in, color 0.2s ease-in;
 }
-.searchMeetings{
-    height: 100%;
-    width: 100%;
+.homeLogout:hover{
+    box-shadow: 7px 7px 0px #2d3436;
+    background-color: red;
+    color: white;
+}
+.homeBody{
+    height: 72%;
+    width: 32%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: aliceblue;
+    border:2px solid black;
+    border-radius:10px;
+    box-shadow:5px 5px 0 black;
+    transition:transform .2s ease, box-shadow .2s ease;
+}
+.homeBody:hover{
+    box-shadow:10px 10px 0 #2d3436;
+    transform:translate(-2px,-2px);
 }
 .homeManageBody{
-    height: 100%;
+    height: 88%;
     width: 100%;
-    background-color: blue;
+    background-color: beige;
     grid-template-rows: 1fr 19fr;
-    padding: 0 5px;
+    border-radius:10px;
 }
 .homeManageBtn{
     display: grid;
     grid-template-columns: 1fr 1fr;
-    padding: 2px;
-    height: 10%;
+    height: 12%;
     width: 100%;
+    background-color: aliceblue;
 }
 .homeBtn{
-    background-color: beige;
+    border: none;
+    border-bottom: 2px solid black;
+    border-top: 2px solid black;
+    background-color: aliceblue;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-size: 18px;
+    font-weight: 800;
+    color: black;
+    transition: background-color 0.2s ease-in;
+}
+.homeBtn:hover{
+    background-color: rgb(208, 231, 252);
+}
+.homeInput{
+    border: 2px solid black;
+    padding: 0 10px;
+    color: #2d3436;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border-color 0.5s ease;
+    outline: none;
+}
+.homeInput:focus{
+    border: 2px solid #346739;
+}
+.createMeetingInput{
+    height: 50px;
+}
+.submitHomeBtn{
+    height: 50px;
+    border: none;
+    border: 2px solid black;
+    background-color: aliceblue;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 800;
+    color: black;
+    box-shadow: 5px 5px black;
+    transition: box-shadow 0.2s ease-in, background-color 0.2s ease-in, color 0.2s ease-in;
+}
+.submitHomeBtn:hover{
+    box-shadow: 7px 7px 0px #2d3436;
+    background-color: #346739;
+    color: white;
 }
 .homeManageContainer{
+    background-color: white;
+    height: 88%;
+    width: 100%;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    overflow: hidden;
+}
+.createMeetingSection{
     height: 100%;
     width: 100%;
     background-color: white;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    overflow: hidden;
+    gap: 20px;
+
 }
 .createMeetingSection{
+    height: auto;
     padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 15px;
+}
+.searchMeetingsInputContainer{
+    width: 95%;
+    height: 50px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.searchMeetingsInputContainer:focus-within{
+    border-color: #346739;
+}
+.searchMeetings{
+    flex: 1;
+    height: 100%;
+    border: none;
+    outline: none;
+    background-color: white;
+    padding: 0 12px;
+    font-size: 16px;
+}
+.searchMeetings:focus{
+    border: none;
+    outline: none;
+}
+.searchHome{
+    height: 100%;
+    width: 90px;
+    border: none;
+    background-color: white;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+}
+@media(max-width: 800px){
+    .homeBody{
+        height: 90%;
+        width: 95%;
+    }
+    .homeLogout{
+        margin: 5px;
+        height: 30px;
+        width: 80px;
+    }
+}
+@media (min-width: 800px) and (max-width:1200px) {
+    .homeBody{
+        height: 60%;
+        width: 40%;
+    }
+    .homeLogout{
+        margin: 5px;
+    }
 }

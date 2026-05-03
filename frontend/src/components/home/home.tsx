@@ -51,6 +51,12 @@ function Home () {
         }
     }
 
+    function navigateBack(){
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        navigate("/auth");
+    }
+
     useEffect(()=>{
         if(!user){
             navigate('/auth')
@@ -58,28 +64,31 @@ function Home () {
     }, [user])
     
     return (
-        <div className="homeBody">
-            <div className="searchMeetingsInputContainer">
-                <input type="text" value={searchMeetingsVal} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{setSearchMeetingsVal(e.target.value);}} className="searchMeetings homeInput" placeholder="Enter Room Id to Search Live Meetings" />
-            </div>
-
-            <div className="homeManageBody">
-                <div className="homeManageBtn">
-                    <button className="meetingManageBtn homeBtn" onClick={()=>{setSection(true)}}>Meeting</button>
-                    <button className="screenshotManageBtn homeBtn" onClick={()=>{setSection(false)}}>Records</button>
+        <div className="home">
+            <div className="homeLogout" onClick={navigateBack}>Logout</div>
+            <div className="homeBody">
+                <div className="searchMeetingsInputContainer">
+                    <input type="text" value={searchMeetingsVal} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{setSearchMeetingsVal(e.target.value);}} className="searchMeetings homeInput" placeholder="Search Live Meetings by Room ID" />
+                    <button className="searchHome">Search</button>
                 </div>
-                <div className="homeManageContainer">
-                    {section ?        
-                        <div className="createMeetingSection">
-                            <input type="text" value={meetingIdInputVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMeetingIdInputVal(e.target.value)}} className="meetingIdInput homeInput" placeholder="Create Room Id, length Must be more than 8"/>
-                            <input type="password" value={meetingIdPassVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMeetingIdPassVal(e.target.value)}} className="meetingIdPass homeInput" placeholder="(Optional) Password Length Must be of 8"/>
-                            <button onClick={createMeeting} className="createMeetingsBtn">Create Meeting</button>
-                        </div>
-                        :
-                        <div className="screenshotSection">
-                            thats screenshot section biraather
-                        </div>
-                    }
+                <div className="homeManageBody">
+                    <div className="homeManageBtn">
+                        <button className="meetingManageBtn homeBtn" onClick={()=>{setSection(true)}}>Meeting</button>
+                        <button className="screenshotManageBtn homeBtn" onClick={()=>{setSection(false)}}>Records</button>
+                    </div>
+                    <div className="homeManageContainer">
+                        {section ?        
+                            <div className="createMeetingSection">
+                                <input type="text" value={meetingIdInputVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMeetingIdInputVal(e.target.value)}} className="meetingIdInput homeInput createMeetingInput" placeholder="Create Room Id of length more than 8"/>
+                                <input type="password" value={meetingIdPassVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMeetingIdPassVal(e.target.value)}} className="meetingIdPass homeInput createMeetingInput" placeholder="(Optional) Password Length Must be of 8"/>
+                                <button onClick={createMeeting} className="createMeetingsBtn submitHomeBtn">Create Meeting</button>
+                            </div>
+                            :
+                            <div className="screenshotSection">
+                                thats screenshot section biraather
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
         </div>

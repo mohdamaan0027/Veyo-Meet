@@ -260,7 +260,7 @@
     cursor:pointer;
 }
 
-@media(max-width:500px){
+@media(max-width:800px){
     .container{
         margin: 0 10px;
         width:100%;
