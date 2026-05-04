@@ -36,8 +36,11 @@ io.on('connection', (socket)=>{
     }
   })
 
-  socket.on('roomJoin', (data)=>{
-    console.log(data)
+  socket.on('roomJoin', (data, callback)=>{
+    const {roomId} = data;
+    console.log(data);
+    socket.join(roomId);
+    callback('success');
   })
 
   socket.on('disconnect', ()=>{

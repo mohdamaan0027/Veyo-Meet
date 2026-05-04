@@ -3,22 +3,29 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {io} from 'socket.io-client';
 import './home.css';
 import axios from 'axios';
+import { nanoid } from "nanoid";
 
 const socket = io("http://localhost:3000");
 
 function Home () {
 
     const location = useLocation();
-    const user = location.state?.user;
+    let user = location.state?.user;
     const navigate = useNavigate();
 
     const [searchMeetingsVal, setSearchMeetingsVal] = useState<string>('');
     const [section, setSection] = useState<boolean>(true);
-    const [meetingIdInputVal, setMeetingIdInputVal] = useState<string>('');
+    const [meetingNameInputVal, setMeetingNameInputVal] = useState<string>('');
     const [meetingIdPassVal, setMeetingIdPassVal] = useState<string>('');
 
+    const [hasCopied, setHasCopied] = useState<boolean>(false);
+
+    const [myId, setMyId] = useState<string>('');
+
     function updateDb(){
-        console.log(socket.id)
+        if(user.email == undefined){ 
+            user = localStorage.getItem("user")
+        }
         socket.emit('dbUpdate', {
             'user': user,
             'socket': socket.id
@@ -27,23 +34,28 @@ function Home () {
 
     useEffect(()=>{
         socket.on('connect', updateDb);
+        setMyId(nanoid(8))
     }, [])
 
     async function createMeeting(){
-        const idVal = String(meetingIdInputVal);
-        const passVal = String(meetingIdPassVal);
-        if(idVal.length <= 8) return;
+        const idVal = myId;
+        const passVal = meetingIdPassVal;
+        const name = meetingNameInputVal;
         if(passVal.length > 0 && passVal.length !== 8) return;
+        if(name.length < 3) return;
         try {
             const result = await axios.post('http://localhost:3000/home/createMeeting', {
                 'userId': user.id,
-                'roomId': meetingIdInputVal,
-                'roomPass': meetingIdPassVal
+                'roomId': idVal,
+                'roomPass': meetingIdPassVal,
+                'name': name
             })
-            if(result.data === 'success'){
-                socket.emit('roomJoin', {
-                    id: user.id,
-                    roomId: idVal,
+            if(result.data.result === 'success'){
+                const {roomId} = result.data.data;
+                socket.emit('roomJoin', {roomId: roomId}, (response: string)=>{
+                    if(response == 'success'){
+                        console.log('room has been succesfully joined')
+                    } else { console.log('oops! something went wrong')};
                 })
             }
         } catch (error) {
@@ -55,6 +67,11 @@ function Home () {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         navigate("/auth");
+    }
+
+    async function copyId(){
+        await navigator.clipboard.writeText(myId);
+        setHasCopied(true);
     }
 
     useEffect(()=>{
@@ -79,7 +96,8 @@ function Home () {
                     <div className="homeManageContainer">
                         {section ?        
                             <div className="createMeetingSection">
-                                <input type="text" value={meetingIdInputVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMeetingIdInputVal(e.target.value)}} className="meetingIdInput homeInput createMeetingInput" placeholder="Create Room Id of length more than 8"/>
+                                <input type="text" onClick={copyId} value={`${myId} ${ hasCopied?'(Copied)':'(Click to copy Room ID)'}`} className="meetingIdInput homeInput createMeetingInput" readOnly/>
+                                <input type="text" value={meetingNameInputVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMeetingNameInputVal(e.target.value)}} className="meetingNameInput homeInput createMeetingInput" placeholder="Enter Name of 3 or more characters"/>
                                 <input type="password" value={meetingIdPassVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMeetingIdPassVal(e.target.value)}} className="meetingIdPass homeInput createMeetingInput" placeholder="(Optional) Password Length Must be of 8"/>
                                 <button onClick={createMeeting} className="createMeetingsBtn submitHomeBtn">Create Meeting</button>
                             </div>

@@ -199,14 +199,18 @@ const getMe = async (req, res)=>{
 }
 
 const createMeeting = async(req, res)=>{
-    const {userId, roomId, roomPass} = req.body;
+    const {userId, roomId, roomPass, name} = req.body;
     if(!userId || !roomId) return;
     try {
-        const result = await db.query('INSERT INTO rooms(room_id, password, leader) VALUES($1, $2, $3) RETURNING *', [roomId, roomPass, userId]);
+        console.log('tried')
+        const result = await db.query('INSERT INTO rooms(room_id, password, leader, leadername) VALUES($1, $2, $3, $4) RETURNING *', [roomId, roomPass, userId, name]);
         const id = result.rows[0].id;
         try {
             await db.query("UPDATE users SET rooms = array_append(COALESCE(rooms, '{}'::int[]), $1::int) WHERE id = $2", [id, userId]);
-            res.status(200).send('success');
+            res.status(200).send({
+                result: 'success',
+                data: result.rows[0]
+            });
         } catch (error) {
             console.log(error);
             res.status(400).send(error);

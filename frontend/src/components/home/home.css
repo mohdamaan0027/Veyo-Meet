@@ -32,9 +32,10 @@
     padding: 5px;
     box-shadow: 5px 5px black;
     cursor: pointer;
-    transition: box-shadow 0.2s ease-in, background-color 0.2s ease-in, color 0.2s ease-in;
+    transition: transform 0.2s ease-in, box-shadow 0.2s ease-in, background-color 0.2s ease-in, color 0.2s ease-in;
 }
 .homeLogout:hover{
+    transform: translateY(-2px);
     box-shadow: 7px 7px 0px #2d3436;
     background-color: red;
     color: white;
@@ -109,10 +110,11 @@
     font-weight: 800;
     color: black;
     box-shadow: 5px 5px black;
-    transition: box-shadow 0.2s ease-in, background-color 0.2s ease-in, color 0.2s ease-in;
+    transition:transform 0.2s ease-in, box-shadow 0.2s ease-in, background-color 0.2s ease-in, color 0.2s ease-in;
 }
 .submitHomeBtn:hover{
-    box-shadow: 7px 7px 0px #2d3436;
+    transform: translateY(-2px);
+    box-shadow: 8px 8px 0px #2d3436;
     background-color: #346739;
     color: white;
 }
