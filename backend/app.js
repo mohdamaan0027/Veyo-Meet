@@ -36,12 +36,49 @@ io.on('connection', (socket)=>{
     }
   })
 
-  socket.on('roomJoin', (data, callback)=>{
-    const {roomId} = data;
-    console.log(data);
+  socket.on('roomJoin', (data, callback) => {
+    const { roomId } = data;
+
+    if (!roomId) {
+      console.log('roomId missing');
+      callback('failed');
+      return;
+    }
+
     socket.join(roomId);
+    console.log(`${socket.id} joined room: ${roomId}`);
     callback('success');
+  });
+
+  socket.on('acceptance', (data, response)=>{
+    const {name, leadersocket, mySocket} = data;
+    socket.to(leadersocket).emit('leaderAcceptance', {name: name, socket: mySocket});
   })
+
+  socket.on('sendApproval', (myData)=>{
+    const {type, mySocket} = myData;
+    socket.to(mySocket).emit('resultAcceptance', type);
+  })
+  
+  socket.on('updateParticipants', (data) => {
+    const { room_id, socket_id, name , user_id} = data;
+
+    if (!room_id) {
+      console.log('room_id missing in updateParticipants');
+      return;
+    }
+
+    socket.join(room_id);
+
+    console.log(`${socket.id} joined room after approval: ${room_id}`);
+    console.log('emitting userJoinedMessage to room:', room_id);
+
+    io.to(room_id).emit('userJoinedMessage', {
+      socket_id,
+      name,
+      user_id
+    });
+  });
 
   socket.on('disconnect', ()=>{
     console.log('disconnected with id:', socket.id)

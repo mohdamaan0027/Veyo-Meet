@@ -199,11 +199,10 @@ const getMe = async (req, res)=>{
 }
 
 const createMeeting = async(req, res)=>{
-    const {userId, roomId, roomPass, name} = req.body;
+    const {userId, roomId, roomPass, name, leadersocket} = req.body;
     if(!userId || !roomId) return;
     try {
-        console.log('tried')
-        const result = await db.query('INSERT INTO rooms(room_id, password, leader, leadername) VALUES($1, $2, $3, $4) RETURNING *', [roomId, roomPass, userId, name]);
+        const result = await db.query('INSERT INTO rooms(room_id, password, leader, leadername, leadersocket) VALUES($1, $2, $3, $4, $5) RETURNING *', [roomId, roomPass, userId, name, leadersocket]);
         const id = result.rows[0].id;
         try {
             await db.query("UPDATE users SET rooms = array_append(COALESCE(rooms, '{}'::int[]), $1::int) WHERE id = $2", [id, userId]);
@@ -221,4 +220,51 @@ const createMeeting = async(req, res)=>{
     }
 }
 
-export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting};
+const searchMeeting = async (req, res)=>{
+    const {search} = req.body;
+    if(!search) return;
+    try {
+        const result = await db.query("SELECT * FROM rooms WHERE room_id = $1", [search]);
+        return res.status(200).json(result.rows);
+    } catch (error) {
+        console.log(error);
+        return res.status(400).send(error);
+    }
+}
+
+const searchMe = async (req, res)=>{
+    const {id} = req.body;
+    if(!id) return res.status(400).send('id missing');
+    try {
+        const result = await db.query('select * from users where id = $1', [id]);
+        const user = result.rows[0];
+        return res.status(200).json(user);
+    } catch (error) {
+        
+    }
+}
+
+const joinUser = async (req, res)=>{
+    const {room_id, name, id, socket_id, room_join_id} = req.body;
+    const user = {
+        name: name,
+        id: id,
+        socket_id: socket_id
+    }
+    try {
+        await db.query("UPDATE users SET rooms = array_append(COALESCE(rooms, '{}'::int[]), $1::int) WHERE id = $2",[room_id, id]);
+        console.log(JSON.stringify([user]))
+        try {
+            const result = await db.query("UPDATE rooms SET participants = COALESCE(participants, '[]'::jsonb) || $1::jsonb where id = $2 returning *", [JSON.stringify([user]), room_id]);
+            res.status(200).json(result.rows[0])
+        } catch (error) {
+            console.log(error);
+            return res.status(400).send(error);
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(400).send(error)
+    }
+}
+
+export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe};

@@ -51,10 +51,27 @@
     border-radius:10px;
     box-shadow:5px 5px 0 black;
     transition:transform .2s ease, box-shadow .2s ease;
+    position: relative;
 }
+
 .homeBody:hover{
     box-shadow:10px 10px 0 #2d3436;
     transform:translate(-2px,-2px);
+}
+.searchResults{
+    position: absolute;
+    height: 50%;
+    width: 80%;
+    top: 25%;
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 5px 10px;
 }
 .homeManageBody{
     height: 88%;
