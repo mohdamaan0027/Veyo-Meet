@@ -1,0 +1,23 @@
+.excalidraw .sidebar-trigger{
+  display: none;
+}
+
+.excalidraw button[title*="More tools"] {
+  display: none;
+}
+
+.excalidraw .help-icon{
+  display: none;
+}
+
+button.dropdown-menu-button.main-menu-trigger.zen-mode-transition{
+    display: none;
+}
+
+.excalidraw .context-menu {
+  display: none;
+}
+
+.excalidraw-hyperlinkContainer .ToolIcon {
+  display: none !important;
+}

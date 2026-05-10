@@ -1,18 +1,351 @@
 *{
     padding: 0;
     margin: 0;
+    box-sizing: border-box;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-.meetingBody{
-    height: 100vh;
-    width: 100vw;
-    background-color: red;
-    position: absolute;
+
+.meetingBody {
+  height: 100vh;
+  width: 100vw;
+  background-color: rgb(255, 255, 244);
+  overflow: hidden;
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr 8fr 1fr;
+  gap: 10px;
+  padding: 0 8px;
 }
-.handleReq{
-    position: relative;
+
+.reqManager{
+  position: absolute;
+  height: 30%;
+  width: 30%;
+  top: 30%;
+  z-index: 105;
+  right: 35%;
+  background-color: white;
+  border-radius: 8px;
+  border: 2px solid black;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-x: none;
+  overflow-y: scroll;
+  max-height: 30%;
+  padding: 5px;
+  transform: translateY(0);
+  box-shadow: 8px 8px 0px black;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reqManager:hover{
+  transform: translateY(-4px);
+  box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.755);
+}
+
+.req{
+  height: 40px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 8fr 1fr 1fr;
+  padding: 0px 5px;
+  border: 1px solid black;
+  border-radius: 5px;
+  align-items: center;
+  font-size: large;
+  font-weight: 800;
+}
+
+.meetingBoard {
+  height: 100%;
+  width: 100%;
+  border-radius: 5px;
+  border: 2px solid black;
+  box-shadow: 5px 5px 0px black;
+}
+
+.meetingBtn{
+  border: none;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  font-size: large;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 10px;
+  color: rgba(255, 0, 0, 0.856);
+  transition: color 0.2s ease;
+}
+
+.meetingBtn:hover{
+  color: #2d3436;
+}
+
+.section1{
+  background-color: red;
+}
+
+.section2 {
+  display: grid;
+  grid-template-columns: 2fr 6fr 2fr;
+  gap: 10px;
+  min-height: 0;  
+  height: 100%;
+}
+
+.leftBtn{
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  z-index: 101;
+  display: none;
+}
+
+.rightBtn{
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 101;
+  display: none;
+}
+
+.participants {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid black;
+  border-radius: 8px;
+  box-shadow: 5px 5px 0px black;
+  background-color: white;
+  padding: 5px;
+  color: #2d3436;
+  height: 100%;    
+  max-height: 100%;
+  overflow: hidden;
+  gap: 20px;
+  padding-top: 20px;
+}
+
+.participantsManager {
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto; 
+  flex-grow: 1;    
+  min-height: 0; 
+  gap: 15px;
+  scrollbar-width: none;
+}
+
+.participantsHeader{
+  font-size: large;
+  font-weight: 800;
+  border-radius: 8px;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.leaderEle, .participantsEle {
+  width: 100%;
+  height: 60px;
+  min-height: 60px; 
+  z-index: 103;
+  font-size: large;
+  font-weight: 800;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid black;
+  padding: 5px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.leaderElePic{
+  height: 50px;
+  width: 50px;
+  border-radius: 50%;
+  border: 2px solid black;
+}
+.participantsElePic{
+  height: 10px;
+  width: 10px;
+}
+.reqTick{
+  border-right: 1px solid black;
+  color: #346739;
+}
+.section3{
+  display: flex;
+  justify-content: center;
+  align-items: start;
+}
+.section3Container{
+  background-color: white;
+  height: 95%;
+  width: 98%;
+  border: 2px solid black;
+  display: flex;
+  flex-direction: row;
+  border-radius: 8px;
+  box-shadow: 3px 3px 0px black;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.section3Container *{
+  cursor: pointer;
+  border: none;
+  background-color: white;
+  height: 100%;
+  width: 100%;
+  font-size: large;
+  font-weight: 800;
+  transition: 0.3s ease;
+}
+
+.section3Container *:hover{
+  background-color: aliceblue;
+}
+
+.middleRight{
+  background-color: white;
+  height: 100%;
+  max-height: 100%;
+  border: 2px solid black;
+  border-radius: 8px;
+  box-shadow: 5px 5px 0px black;
+  display: flex;
+  flex-direction: column;
+  padding-top: 5px;
+}
+
+.groupChat, .doubts{
+  height: 100%;
+  width: 100%;
+  display: grid;
+  grid-template-rows: 2fr 9fr 2fr;
+}
+
+.doubts{
+  border-top: 2px solid black;
+}
+
+.groupChatHeader, .doubtsHeader{
+  padding: 5px;
+  font-size: large;
+  font-weight: 800;
+  background-color: white;
+  border-bottom: 2px solid black;
+}
+
+.groupChatInputContainer, .doubtsInputContainer{
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  padding: 3px;
+}
+
+.groupChatInput, .doubtsInput{
+  height: 100%;
+  width: 80%;
+  outline: none;
+  border: none;
+  border: 1px solid black;
+  border-right: none;
+  border-radius: 5px;
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+  padding-left: 5px;
+  align-items: center;
+  font-size: small;
+  color: #2d3436;
+  transition: 0.2s ease;
+}
+
+.groupBtn, .doubtBtn{
+  background-color: white;
+  border: 1px solid black;
+  border-left: none;
+  font-size: 14px;
+  align-items: center;
+  font-weight: 600;
+  padding: 5px;
+  border-radius: 5px;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.groupBtn:hover, .doubtBtn:hover{
+  color: #346739;
+}
+
+@media screen and (max-width: 800px) {
+
+  .meetingBoard{
+    border: none;
+    border-radius: none;
+  }
+
+  .reqManager{
     height: 50%;
-    width: 50%;
-    background-color: blue;
-    top: 25%;
-    left: 25%;
+    width: 80%;
+    top: 30%;
+    right: 10%;
+  }
+  .leftBtn,.rightBtn{
+    display: block;
+    height: 30px;
+    width: 30px;
+    color: black;
+    border: 2px solid black;
+    border-radius: 5px;
+    background-color: aliceblue;
+  }
+  .meetingBody{
+    padding: 0;
+    gap: 0;
+  }
+  .section2{
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    display: block;
+  }
+  .middleLeft{
+    background-color: white;
+    position: absolute;
+    z-index: 99;
+    inset: 0;
+    border-right: 3px solid black;
+    transform: translateX(-115%) rotate(-5deg);
+    opacity: 0.7;
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+  }
+  .middleRight{
+    background-color: white;
+    position: absolute;
+    inset: 0;
+    transform: translateY(115%) rotate(4deg);
+    opacity: 0.7;
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+    border-top: 3px solid black;
+    z-index: 100;
+  }
+  .showLeft{
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  .showRight{
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
 }
