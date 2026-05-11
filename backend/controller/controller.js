@@ -224,7 +224,7 @@ const searchMeeting = async (req, res)=>{
     const {search} = req.body;
     if(!search) return;
     try {
-        const result = await db.query("SELECT * FROM rooms WHERE room_id = $1", [search]);
+        const result = await db.query("SELECT * FROM rooms WHERE room_id = $1 and live = true", [search]);
         return res.status(200).json(result.rows);
     } catch (error) {
         console.log(error);

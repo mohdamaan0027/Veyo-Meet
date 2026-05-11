@@ -4,6 +4,7 @@ import "@excalidraw/excalidraw/index.css";
 import './myBoard.css';
 import { socket } from "../../home/home.tsx";
 import { useLocation } from "react-router-dom";
+// import axios from "axios";
 
 function MyBoard() {
   const location = useLocation();

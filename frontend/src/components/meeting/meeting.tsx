@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {socket} from '../home/home.tsx';
 import './meeting.css';
@@ -8,6 +8,8 @@ import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import {faAngleUp} from '@fortawesome/free-solid-svg-icons';
 import {faUserGroup} from '@fortawesome/free-solid-svg-icons';
 import UserAvatar from "./components/userAvatar.tsx";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Meeting(){
 
@@ -16,8 +18,9 @@ function Meeting(){
     const roomId = data?.room_id;
 
     const [joinArr, setJoinArr] = useState<Array<joinData>>([]);
-    const [leftOpen,setLeftOpen] = useState(false)
-    const [rightOpen,setRightOpen] = useState(false)
+    const [leftOpen,setLeftOpen] = useState<boolean>(false);
+    const [rightOpen,setRightOpen] = useState<boolean>(false);
+    const [message, setMessage] = useState<string>('');
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -28,6 +31,10 @@ function Meeting(){
         room_id: '',
         leadersocket: ''
     });
+
+    const navigate = useNavigate();
+
+    const updatedDataReff = useRef(updatedData);
 
     interface participantsInter {
         id?: number,
@@ -65,6 +72,15 @@ function Meeting(){
         })
     }
 
+    function checkMessage(){
+        const myMessage = message;
+        if(myMessage == 'room ended as leader left 😁'){
+            navigate('/home')
+            return;
+        }
+        setMessage('');
+    }
+
     useEffect(()=>{
         function leaderAcceptance(data:joinData){
             const data0 = {
@@ -93,9 +109,7 @@ function Meeting(){
                 }
             })
         }
-
         socket.on('userJoinedMessage', userJoinedMessage);
-
         return () => {
             socket.off('userJoinedMessage', userJoinedMessage);
         };
@@ -103,19 +117,69 @@ function Meeting(){
 
     useEffect(() => {
         if (!roomId) return;
-
         socket.emit("roomJoin", { roomId }, (res: string) => {
             console.log("room join response:", res);
         });
-
         return () => {
             socket.emit("leaveMyRoom", roomId);
         };
     }, [roomId]);
 
     useEffect(()=>{
-        console.log('from', updatedData)
+        let userArr;
+        function sendData(){
+            const latestUpdatedData = updatedDataReff.current;
+            userArr = socket.id == latestUpdatedData.leadersocket? latestUpdatedData.leadername : latestUpdatedData?.participants?.filter((e)=>{
+                return socket.id == e.socket_id
+            })[0]?.name;
+            socket.emit('disconnectedData', {'room': roomId, 'userSocket': socket.id, 'userArr': userArr})
+        }
+        window.addEventListener('beforeunload', sendData)
+        socket.on('disconnect', ()=>{
+            console.log('user disconnect with socket id', socket.id);
+        })
+        return ()=>{
+            window.removeEventListener('beforeunload', sendData);
+            socket.off('disconnect')
+        }
+    }, [])
+
+    useEffect(()=>{
+        updatedDataReff.current = updatedData;
     }, [updatedData])
+
+    useEffect(()=>{
+        let latestUpdatedData;
+        function declareUserDisconnected(data:any){
+            latestUpdatedData = updatedDataReff.current;
+            const {userSocket, userArr} = data;
+            const newArr = latestUpdatedData?.participants?.filter((e)=>{
+                return e.socket_id !== userSocket
+            })
+            if(userSocket === latestUpdatedData.leadersocket){
+                socket.emit('leaderLeft', {'roomId': roomId});
+                return;
+            }
+            setUpdatedData((prev)=>{
+                return {
+                    ...prev,
+                    participants: newArr
+                }
+            });
+            setMessage(`user left named as ${userArr}`);
+        }
+        socket.on('declareUserDisconnected', declareUserDisconnected);
+        return ()=>{socket.off('declareUserDisconnected', declareUserDisconnected)};
+    },[])
+
+    useEffect(()=>{
+        function leaderLeftToFrontend(){
+            console.log('we did')
+            setMessage(`room ended as leader left 😁`);
+        }
+        socket.on('leaderLeftToFrontend', leaderLeftToFrontend);
+        return ()=>{socket.off('leaderLeftToFrontend', leaderLeftToFrontend)}
+    }, []);
 
     if(!roomId){
         return <>Oops! Something went wrong</>
@@ -123,6 +187,11 @@ function Meeting(){
     
    return (
     <div className="meetingBody">
+        {message.length > 0 ? <div className="meetingMessage" onClick={checkMessage}>
+            <p className="meetingText">{message}</p>
+            <button className="endBtn">Close</button>
+        </div> : ''}
+
         <div className="section1"></div>
 
         <div className="section2">

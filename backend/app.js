@@ -90,10 +90,18 @@ io.on('connection', (socket)=>{
       socket.leave(roomId);
     });
 
-    socket.on('disconnect', ()=>{
-      console.log('disconnected with id:', socket.id)
+    socket.on('disconnectedData', (data)=>{
+      const {room} = data;
+      console.log('disconnected data:', data)
+      io.to(room).emit('declareUserDisconnected', data)
     })
 
+    socket.on('leaderLeft', async ({roomId})=>{
+      console.log('we did')
+      socket.to(roomId).emit('leaderLeftToFrontend');
+      await db.query('UPDATE rooms SET live = false WHERE room_id = $1', [roomId])
+      socket.leave(roomId);
+    })
 })
 
 export const db = new Client({
