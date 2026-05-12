@@ -102,6 +102,12 @@ io.on('connection', (socket)=>{
       console.log('we did')
       socket.leave(roomId);
     })
+
+    socket.on('controlAction', (data)=>{
+      const {socketVal, roomVal} = data;
+      io.to(roomVal).emit('controllerActionBack', socketVal)
+      console.log('we did to control')
+    })
 })
 
 export const db = new Client({

@@ -6,7 +6,7 @@ import { socket } from "../../home/home.tsx";
 import { useLocation } from "react-router-dom";
 // import axios from "axios";
 
-function MyBoard() {
+function MyBoard({controller}: {controller: boolean}) {
   const location = useLocation();
   const roomId = location?.state?.data?.room_id;
 
@@ -43,6 +43,10 @@ function MyBoard() {
     [roomId]
   );
 
+  useEffect(()=>{
+    console.log('from board', controller)
+  }, [controller])
+
   useEffect(():any => {
     function onWhiteboardChange(data: any) {
 
@@ -66,6 +70,7 @@ function MyBoard() {
   return (
     <div className="meetingBoard">
       <Excalidraw
+        viewModeEnabled={!controller}
         excalidrawAPI={(api) => (excalidrawAPI.current = api)}
         onChange={(elements, appState) => {
           if (isUpdating.current) return;

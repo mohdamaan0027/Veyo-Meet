@@ -211,6 +211,7 @@
   padding: 5px;
   border-radius: 5px;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .leaderElePic{
@@ -241,8 +242,9 @@
   flex-direction: row;
   border-radius: 8px;
   box-shadow: 3px 3px 0px black;
-  gap: 3px;
+  /* gap: 3px; */
   overflow: hidden;
+  padding: 0;
 }
 
 .section3Container *{
@@ -333,6 +335,10 @@
 
 .groupBtn:hover, .doubtBtn:hover{
   color: #346739;
+}
+
+.control{
+  margin: 0;
 }
 
 @media screen and (max-width: 800px) {

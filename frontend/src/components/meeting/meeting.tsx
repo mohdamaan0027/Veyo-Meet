@@ -21,6 +21,10 @@ function Meeting(){
     const [leftOpen,setLeftOpen] = useState<boolean>(false);
     const [rightOpen,setRightOpen] = useState<boolean>(false);
     const [message, setMessage] = useState<string>('');
+    const [controller, setController] = useState<string>('');
+    const [canControl, setCanControl] = useState<boolean>(false);
+    const [clickedControl, setClickedControl] = useState<boolean>(false);
+    const [givenControl, setGivenControl] = useState<boolean>(false);
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -35,6 +39,7 @@ function Meeting(){
     const navigate = useNavigate();
 
     const updatedDataReff = useRef(updatedData);
+    const controllerReff = useRef(controller);
 
     interface participantsInter {
         id?: number,
@@ -80,6 +85,57 @@ function Meeting(){
         }
         setMessage('');
     }
+
+    function controlling(){
+        if(socket.id !== updatedData.leadersocket) return;
+        setClickedControl(!clickedControl);
+        if(!clickedControl) setMessage('please click on any participant to give control');
+    }
+
+    function controllerAction(e:React.MouseEvent<HTMLElement>){
+        if(socket.id !== updatedData.leadersocket) return;
+        if(!clickedControl) return;
+        setClickedControl(false);
+        setMessage('');
+        const socketVal = e.currentTarget.dataset.socket;
+        socket.emit('controlAction', {'socketVal': socketVal, 'roomVal': roomId});
+    }
+
+    useEffect(()=>{
+        console.log('from meeting', controller) 
+    }, [controller])
+
+    useEffect(()=>{
+        const latestData = updatedDataReff.current
+        function controllerActionBack(data:string){
+            const socketVal = data;
+            if(controllerReff.current == socketVal){
+                console.log('we tried to reset')
+                setController(latestData.leadersocket);
+                return;
+            }
+            setController(socketVal);
+        }
+        socket.on('controllerActionBack', controllerActionBack);
+        return ()=>{socket.off('controllerActionBack', controllerActionBack)}
+    }, [])
+
+    useEffect(()=>{
+        if(updatedData.leadersocket == socket.id){
+            setCanControl(true);
+            setController(updatedData.leadersocket);
+            return
+        }
+    }, [updatedData.leadersocket])
+
+    useEffect(()=>{
+        const latestData = updatedDataReff.current;
+        const user = latestData.participants.filter((e)=>{
+            return e.socket_id == socket.id;
+        })
+        if(user.length<=0) return;
+        if(controller == user[0].socket_id) {setCanControl(true), setGivenControl(true)} else {setCanControl(false), setGivenControl(false)};
+    }, [controller])
 
     useEffect(()=>{
         function leaderAcceptance(data:joinData){
@@ -183,6 +239,10 @@ function Meeting(){
         return ()=>{socket.off('leaderLeftToFrontend', leaderLeftToFrontend)}
     }, []);
 
+    useEffect(()=>{
+        controllerReff.current = controller;
+    }, [controller])
+
     if(!roomId){
         return <>Oops! Something went wrong</>
     }
@@ -206,7 +266,7 @@ function Meeting(){
                     </div>
                         {updatedData?.participants?.length?
                             updatedData?.participants.map((e, i)=>{
-                                return <div className="participantsEle" tabIndex={i}>
+                                return <div className="participantsEle" style={controller == e.socket_id? {'backgroundColor': '#4f9a57ff', 'color': 'white'}:{}} data-socket={e.socket_id} onClick={controllerAction} tabIndex={i}>
                                     <UserAvatar e={e.socket_id}/>
                                     {e.name.length > 5 ? (e.name.slice(0, 4) + '...') : e.name}
                                 </div>
@@ -214,7 +274,7 @@ function Meeting(){
                         }
                 </div>
             </div>
-            <MyBoard/>
+            <MyBoard controller = {canControl}/>
             <div className={`middleRight ${rightOpen ? "showRight" : ""}`}>
                 <div className="groupChat">
                     <div className="groupChatHeader">Live Chat</div>
@@ -241,7 +301,7 @@ function Meeting(){
             <div className="section3Container">
                 <button style={{'borderRight': '2px solid black'}} className="mic">Mic</button>
                 {socket.id === updatedData.leadersocket?
-                <button style={{'borderRight': '2px solid black'}} className="control">Control</button> : ''
+                <button style={!clickedControl? {'borderRight': '2px solid black'}: {'borderRight': '2px solid black', 'backgroundColor': '#346739ff', 'color': 'white'}} onClick={controlling} className="control">Control</button> : ''
                 }
                 <button className="leave">Leave</button>
             </div>
