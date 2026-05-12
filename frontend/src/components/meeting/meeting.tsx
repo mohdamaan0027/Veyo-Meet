@@ -9,7 +9,7 @@ import {faAngleUp} from '@fortawesome/free-solid-svg-icons';
 import {faUserGroup} from '@fortawesome/free-solid-svg-icons';
 import UserAvatar from "./components/userAvatar.tsx";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+// import axios from "axios";
 
 function Meeting(){
 
@@ -63,7 +63,7 @@ function Meeting(){
         const name = e.currentTarget.dataset.name;
         if(!socketId || !name) return;
         const getFiltered = joinArr.filter((e)=>{
-            return e.name !== name;
+            return e.socket !== socketId;
         })
         setJoinArr(getFiltered);
         socket.emit('sendApproval', {
@@ -108,6 +108,7 @@ function Meeting(){
                     participants: [...prev.participants, {socket_id: socket_id, name: name, id: user_id}]
                 }
             })
+            setMessage(`user joined named as ${name}`)
         }
         socket.on('userJoinedMessage', userJoinedMessage);
         return () => {
@@ -158,6 +159,7 @@ function Meeting(){
             })
             if(userSocket === latestUpdatedData.leadersocket){
                 socket.emit('leaderLeft', {'roomId': roomId});
+                // navigate('/home');
                 return;
             }
             setUpdatedData((prev)=>{
@@ -200,13 +202,13 @@ function Meeting(){
                 <div className="participantsManager">
                     <div className="leaderEle">
                         <img className="leaderElePic" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCMQ9s4jJ638UpXjhZfRNcNqHfiUU2i2nNqA&s" alt="leaderimage" />
-                        {updatedData.leadername} <span style={{'opacity': 0.5, 'color': '#346739'}}>(Leader)</span>
+                        {updatedData.leadername.length > 5 ? (updatedData.leadername.slice(0, 4) + '...') : updatedData.leadername} <span style={{'opacity': 0.5, 'color': '#346739'}}>(Leader)</span>
                     </div>
                         {updatedData?.participants?.length?
                             updatedData?.participants.map((e, i)=>{
                                 return <div className="participantsEle" tabIndex={i}>
                                     <UserAvatar e={e.socket_id}/>
-                                    {e.name}
+                                    {e.name.length > 5 ? (e.name.slice(0, 4) + '...') : e.name}
                                 </div>
                             }):''
                         }

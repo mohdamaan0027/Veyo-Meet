@@ -97,9 +97,9 @@ io.on('connection', (socket)=>{
     })
 
     socket.on('leaderLeft', async ({roomId})=>{
-      console.log('we did')
       socket.to(roomId).emit('leaderLeftToFrontend');
       await db.query('UPDATE rooms SET live = false WHERE room_id = $1', [roomId])
+      console.log('we did')
       socket.leave(roomId);
     })
 })
