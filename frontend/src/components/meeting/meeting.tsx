@@ -9,6 +9,7 @@ import {faAngleUp} from '@fortawesome/free-solid-svg-icons';
 import {faUserGroup} from '@fortawesome/free-solid-svg-icons';
 import UserAvatar from "./components/userAvatar.tsx";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 // import axios from "axios";
 
 function Meeting(){
@@ -24,7 +25,7 @@ function Meeting(){
     const [controller, setController] = useState<string>('');
     const [canControl, setCanControl] = useState<boolean>(false);
     const [clickedControl, setClickedControl] = useState<boolean>(false);
-    const [givenControl, setGivenControl] = useState<boolean>(false);
+    const [groupChatVal, setGroupChatVal] = useState<string>('');
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -33,7 +34,8 @@ function Meeting(){
         participants: [],
         password: '',
         room_id: '',
-        leadersocket: ''
+        leadersocket: '',
+        live_chat: []
     });
 
     const navigate = useNavigate();
@@ -47,6 +49,11 @@ function Meeting(){
         socket_id: string
     }
 
+    interface groupChatInger {
+        name: string,
+        chat: string
+    }
+
     interface results {
         id?: number | null,
         leader: string,
@@ -54,7 +61,8 @@ function Meeting(){
         participants: participantsInter[],
         password: string,
         room_id: string,
-        leadersocket: string
+        leadersocket: string,
+        live_chat: groupChatInger[]
     }
 
     interface joinData {
@@ -89,7 +97,7 @@ function Meeting(){
     function controlling(){
         if(socket.id !== updatedData.leadersocket) return;
         setClickedControl(!clickedControl);
-        if(!clickedControl) setMessage('please click on any participant to give control');
+        if(!clickedControl) {setMessage('please click on any participant to give control'); setLeftOpen(true);};
     }
 
     function controllerAction(e:React.MouseEvent<HTMLElement>){
@@ -99,11 +107,46 @@ function Meeting(){
         setMessage('');
         const socketVal = e.currentTarget.dataset.socket;
         socket.emit('controlAction', {'socketVal': socketVal, 'roomVal': roomId});
+        setLeftOpen(false)
+    }
+
+    async function sendGroupChat(){
+        const val = groupChatVal;
+        console.log(!val)
+        if(!val) return;
+        const user = socket.id == updatedData.leadersocket? updatedData.leadername : updatedData.participants.filter((e)=>{
+            return socket.id == e.socket_id
+        })[0]?.name;
+        if(!user) return;
+        setGroupChatVal('');
+        try {
+            const result = await axios.post('http://localhost:3000/meeting/groupChat', {'val': val, 'name': user, 'roomId': roomId});
+            if(result.status == 200 && result.data == 'success'){
+                socket.emit('sendGroupChat', {'roomId': roomId, 'name': user, 'val': val})
+            }
+        } catch (error) {
+            console.log(error);
+            return
+        }
     }
 
     useEffect(()=>{
-        console.log('from meeting', controller) 
-    }, [controller])
+        console.log(updatedData.live_chat)
+    }, [updatedData.live_chat])
+
+    useEffect(()=>{
+        function sendGrouptChatToFrontend(data:any){
+            const {name, chat} = data;
+            setUpdatedData((prev)=>{
+                return {
+                    ...prev,
+                    live_chat: [...prev.live_chat ?? [], {name: name, chat: chat}]
+                }
+            })
+        }
+        socket.on("sendGrouptChatToFrontend", sendGrouptChatToFrontend);
+        return ()=>{socket.off("sendGrouptChatToFrontend", sendGrouptChatToFrontend)}
+    }, [])
 
     useEffect(()=>{
         const latestData = updatedDataReff.current
@@ -134,7 +177,7 @@ function Meeting(){
             return e.socket_id == socket.id;
         })
         if(user.length<=0) return;
-        if(controller == user[0].socket_id) {setCanControl(true), setGivenControl(true)} else {setCanControl(false), setGivenControl(false)};
+        if(controller == user[0].socket_id) {setCanControl(true)} else {setCanControl(false)};
     }, [controller])
 
     useEffect(()=>{
@@ -161,7 +204,7 @@ function Meeting(){
             setUpdatedData((prev)=>{
                 return {
                     ...prev,
-                    participants: [...prev.participants, {socket_id: socket_id, name: name, id: user_id}]
+                    participants: [...prev.participants ?? [], {socket_id: socket_id, name: name, id: user_id}]
                 }
             })
             setMessage(`user joined named as ${name}`)
@@ -243,6 +286,14 @@ function Meeting(){
         controllerReff.current = controller;
     }, [controller])
 
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if(chatContainerRef.current){
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }, [updatedData.live_chat]);
+
     if(!roomId){
         return <>Oops! Something went wrong</>
     }
@@ -278,10 +329,17 @@ function Meeting(){
             <div className={`middleRight ${rightOpen ? "showRight" : ""}`}>
                 <div className="groupChat">
                     <div className="groupChatHeader">Live Chat</div>
-                    <div className="groupChatContainer"></div>
+                    <div className="groupChatContainer" ref={chatContainerRef}>
+                        {updatedData.live_chat?.map((e:groupChatInger, i:number)=>{
+                            return <div className="meetingChat" key={i}>
+                                <span className="meetingChatName">{e.name}</span>
+                                <p className="meetingChatText">{e.chat}</p>
+                            </div>
+                        })}
+                    </div>
                     <div className="groupChatInputContainer">
-                        <input placeholder="Enter here.." type="text" className="groupChatInput"/>
-                        <button className="groupBtn" style={{'height': '100%', 'width': '20%'}}>Send</button>
+                        <input placeholder="Enter here.." value={groupChatVal} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{setGroupChatVal(e.target.value)}} type="text" className="groupChatInput"/>
+                        <button className="groupBtn" onClick={sendGroupChat} style={{'height': '100%', 'width': '20%'}}>Send</button>
                     </div>
                 </div>
                 <div className="doubts">

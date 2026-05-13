@@ -267,4 +267,16 @@ const joinUser = async (req, res)=>{
     }
 }
 
-export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe};
+const groupChat = async (req, res)=>{
+    const {name, val, roomId} = req.body;
+    if(!name || !val || !roomId) return;
+    try {
+        await db.query('UPDATE rooms SET live_chat = live_chat || $1::jsonb WHERE room_id = $2', [JSON.stringify([{'name': name, 'chat': val}]), roomId]);
+        res.status(200).send('success');
+    } catch (error) {
+        console.log(error);
+        res.status(400).send(error)
+    }
+}
+
+export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat};

@@ -23,7 +23,7 @@
   width: 80%;
   /* padding: 5px 0; */
   border: 2px solid black;
-  top: 20%;
+  top: 10%;
   left: 12%;
   background-color: white;
   border-radius: 5px;
@@ -272,6 +272,7 @@
   display: flex;
   flex-direction: column;
   padding-top: 5px;
+  overflow: hidden;
 }
 
 .groupChat, .doubts{
@@ -279,6 +280,8 @@
   width: 100%;
   display: grid;
   grid-template-rows: 2fr 9fr 2fr;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .doubts{
@@ -341,6 +344,46 @@
   margin: 0;
 }
 
+.groupChatContainer{
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: none;
+  padding: 5px;
+  gap: 5px;
+}
+
+.meetingChat{
+  min-height: 50px;
+  height: auto;
+  width: 100%;
+  background-color: white;
+  padding: 5px;
+  border-radius: 8px;
+  box-shadow: 3px 3px 3px black, inset 1px 1px 3px rgba(0, 0, 0, 0.216);
+  word-break: break-word;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.meetingChat:hover .meetingChatName{
+  font-size: medium;
+  color: rgba(255, 0, 0, 0.856);
+}
+
+.meetingChatName{
+  color: #346739;
+  font-size: small;
+  transition: 0.3s ease-out;
+}
+
+.meetingChatText{
+  color: #2d3436;
+}
+
 @media screen and (max-width: 800px) {
 
   .meetingBoard{
@@ -400,5 +443,8 @@
   .showRight{
     transform: translateY(0) rotate(0deg);
     opacity: 1;
+  }
+  .meetingMessage{
+    height: 50px;
   }
 }

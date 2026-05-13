@@ -1,4 +1,4 @@
-import {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe} from '../controller/controller.js';
+import {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat} from '../controller/controller.js';
 import {check} from '../middleware/middleware.js';
 import express from 'express';
 
@@ -16,4 +16,7 @@ router.post('/home/createMeeting', createMeeting);
 router.post('/home/searchMeeting', searchMeeting);
 router.post('/home/joinUser', joinUser);
 router.post('/home/searchMe', searchMe);
+
+// meeting routes from here------->
+router.post('/meeting/groupChat', groupChat);
 

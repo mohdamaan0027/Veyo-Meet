@@ -108,6 +108,14 @@ io.on('connection', (socket)=>{
       io.to(roomVal).emit('controllerActionBack', socketVal)
       console.log('we did to control')
     })
+
+    socket.on("sendGroupChat", ({roomId, name, val})=>{
+      if( !roomId || !name || !val) return;
+        io.to(roomId).emit("sendGrouptChatToFrontend", {
+          'name': name,
+          'chat': val
+        })
+    })
 })
 
 export const db = new Client({
