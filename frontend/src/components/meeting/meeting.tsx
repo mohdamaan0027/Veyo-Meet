@@ -26,6 +26,13 @@ function Meeting(){
     const [canControl, setCanControl] = useState<boolean>(false);
     const [clickedControl, setClickedControl] = useState<boolean>(false);
     const [groupChatVal, setGroupChatVal] = useState<string>('');
+    const [doubtType, setDoubtType] = useState<doubtT>('');
+    const [noOfDoubtInput, setNoOfDoubtInput] = useState<number>(0);
+    const [clickedPoll, setClickedPoll] = useState<boolean>(false);
+    const [clickedQues, setClickedQues] = useState<boolean>(false);
+    const [pollOptions, setPollOptions] = useState<Array<pollOptInter>>([]);
+    const [mainPollVal, setMainPollVall] = useState<string>('');
+    const [receivePoll, setReceivePoll] = useState<Array<receivePollInter>>([]);
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -43,6 +50,13 @@ function Meeting(){
     const updatedDataReff = useRef(updatedData);
     const controllerReff = useRef(controller);
 
+    type doubtT = 'poll' | 'ques' | '';
+
+    interface receivePollInter {
+        poll : string,
+        data : pollOptInter[]
+    }
+
     interface participantsInter {
         id?: number,
         name: string,
@@ -52,6 +66,11 @@ function Meeting(){
     interface groupChatInger {
         name: string,
         chat: string
+    }
+
+    interface pollOptInter {
+        id?: number,
+        value?: string
     }
 
     interface results {
@@ -129,6 +148,42 @@ function Meeting(){
             return
         }
     }
+
+    function pollClicked(){
+        setClickedQues(false);
+        if(doubtType == 'poll'){
+            if(mainPollVal){
+                const check = pollOptions.some((e)=>{
+                    return !e.value
+                })
+                if(!check){
+                    socket.emit('poll', {
+                        'roomId': roomId,
+                        'data': pollOptions,
+                        'poll': mainPollVal
+                    })
+                    setPollOptions([])
+                    setNoOfDoubtInput(0)
+                    setMainPollVall('')
+                }
+            }
+            setDoubtType('');
+            setClickedPoll(false); 
+            return;
+        }
+        setDoubtType('poll');
+        setClickedPoll(true);
+    }
+
+    useEffect(()=>{
+        function onReceivePoll(e: any){
+            setReceivePoll((prev)=>{
+                return [...prev ?? [], e]
+            })
+        }
+        socket.on('receivePoll', onReceivePoll);
+        return ()=>{socket.off('receivePoll', onReceivePoll)}
+    }, [])
 
     useEffect(()=>{
         console.log(updatedData.live_chat)
@@ -342,12 +397,40 @@ function Meeting(){
                         <button className="groupBtn" onClick={sendGroupChat} style={{'height': '100%', 'width': '20%'}}>Send</button>
                     </div>
                 </div>
-                <div className="doubts">
+                <div className={socket.id == updatedData.leadersocket? 'doubts': 'doubtsParticipant'}>
                     <div className="doubtsHeader">Questions</div>
-                    <div className="doubtsContainer"></div>
+                    <div className="doubtsContainer">
+                        {
+                            doubtType.length > 0? (doubtType == 'poll'?
+                            <div className="doubtPoll">
+                                <input type='text' value={mainPollVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMainPollVall(e.target.value)}} placeholder="Enter here"/>
+                                <div className="addDoubtBtnContianer">
+                                    {
+                                        Array.from({length: noOfDoubtInput}, (_, i)=>{
+                                            return <input type="text" value={pollOptions[i].value} onChange={(m:React.ChangeEvent<HTMLInputElement>)=>{setPollOptions((prev)=>{
+                                                return prev.map((e, ind)=>{
+                                                    return ind == i ? {...e, value: m.target.value} : e
+                                                })
+                                            })}} key={i} className="doubtBtnInput" />
+                                        })
+                                    }
+                                    <button className="addDoubtBtn" disabled={noOfDoubtInput == 6 ? true: false} onClick={()=>{if(noOfDoubtInput == 6)return;setNoOfDoubtInput(noOfDoubtInput + 1); setPollOptions((prev)=>{
+                                        return [...prev ?? [], {
+                                            id: noOfDoubtInput + 1
+                                        }]
+                                    })}}>Add</button>
+                                    <button className="removeDoubtBtn" onClick={()=>{pollOptions.pop();setNoOfDoubtInput(noOfDoubtInput-1)}}>Remove</button>
+                                </div>
+                            </div>:
+                            <div className="doubtQues">
+                            </div>) : ''
+                        }
+                    </div>
                     <div className="doubtsInputContainer">
-                        <input type="text" placeholder="Enter here.." className="doubtsInput"/>
-                        <button className="doubtBtn" style={{'height': '100%', 'width': '20%'}}>Send</button>
+                        {socket.id == updatedData.leadersocket && <div className="doubtBtnContainer">
+                            <button onClick={pollClicked} className="doubtBtn" style={{'height': '100%', 'width': '20%'}}>{clickedPoll ? 'Send': 'Poll'}</button>
+                            <button className="doubtBtn0" onClick={()=>{setClickedPoll(false); if(doubtType == 'ques'){setDoubtType(''); setClickedQues(false); return};setDoubtType('ques'); setClickedQues(true);}} style={{'height': '100%', 'width': '20%'}}>{clickedQues? 'Send': 'Ques'}</button>
+                        </div>}
                     </div>
                 </div>
             </div>

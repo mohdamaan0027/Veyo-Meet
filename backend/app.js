@@ -99,14 +99,12 @@ io.on('connection', (socket)=>{
     socket.on('leaderLeft', async ({roomId})=>{
       socket.to(roomId).emit('leaderLeftToFrontend');
       await db.query('UPDATE rooms SET live = false WHERE room_id = $1', [roomId])
-      console.log('we did')
       socket.leave(roomId);
     })
 
     socket.on('controlAction', (data)=>{
       const {socketVal, roomVal} = data;
       io.to(roomVal).emit('controllerActionBack', socketVal)
-      console.log('we did to control')
     })
 
     socket.on("sendGroupChat", ({roomId, name, val})=>{
@@ -115,6 +113,14 @@ io.on('connection', (socket)=>{
           'name': name,
           'chat': val
         })
+    })
+
+    socket.on('poll', (e)=>{
+      const {roomId, data, poll} =e;
+      io.to(roomId).emit('receivePoll', {
+        'poll': poll,
+        'data': data
+      })
     })
 })
 
