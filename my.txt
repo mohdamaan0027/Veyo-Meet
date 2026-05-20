@@ -1,0 +1,14 @@
+Main background: #0F1020
+Background glow purple: rgba(124, 92, 255, 0.22)
+Background glow cyan: rgba(0, 212, 255, 0.12)
+
+Top tab background: #1B1B34
+Form body/card: #17172B
+Input background: #222342
+Input border: #34365F
+Primary button: #6C63FF
+Primary button hover text: #00D4FF
+
+Text main: #F8FAFC
+Text muted: #A7A9C5
+Border/shadow: rgba(0, 0, 0, 0.35)

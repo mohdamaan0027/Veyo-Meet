@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import {useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {socket} from '../home/home.tsx';
 import './meeting.css';
 import MyBoard from "./components/myBoard.tsx";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight,faSquareXmark } from '@fortawesome/free-solid-svg-icons';
 import {faAngleUp} from '@fortawesome/free-solid-svg-icons';
 import {faUserGroup} from '@fortawesome/free-solid-svg-icons';
+import {faMaximize} from '@fortawesome/free-solid-svg-icons';
 import UserAvatar from "./components/userAvatar.tsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -33,6 +34,20 @@ function Meeting(){
     const [pollOptions, setPollOptions] = useState<Array<pollOptInter>>([]);
     const [mainPollVal, setMainPollVall] = useState<string>('');
     const [receivePoll, setReceivePoll] = useState<Array<receivePollInter>>([]);
+    const [viewDoubtType, setViewDoubtType] = useState<boolean>(true);
+    const [isView, setIsView] = useState<boolean>(false);
+    const [clickedPollOptManager, setClickedPollOptManager] = useState<Array<clickedPollOptInter>>([]);
+    const [leaderPollArr, setLeaderPollArr] = useState<Array<leaderPollViewInter>>([]);
+    // const [pollOptData, setPollOptData] = useState<Array<pollOptDataInter>>([]);
+    const [selectedPollId, setSelectedPollId] = useState<number | null>(null);
+    const [checkPollOpt, setCheckPollOpt] = useState<boolean>(false);
+    const [percContainer, setPercContainer] = useState<Record<number, Array<percContainerInter>>>({});
+    const [viewUsersArr, setViewUsersArr] = useState<Array<string>>([]);
+    const [qoubtQuesInpVal, setQoubtQuesInpVal] = useState<string>('');
+    const [ansArr, setAnsArr] = useState<Array<string>>([]);
+    const [ansVal, setAnsVal] = useState<Record<number, string>>({});
+    const [ansValUsersArr, setAnsValUsersArr] = useState<Array<ansValUsersArrInter>>([]);
+    const [checkAnsSend, setCheckAnsSend] = useState<Array<number>>([]);
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -52,7 +67,36 @@ function Meeting(){
 
     type doubtT = 'poll' | 'ques' | '';
 
+    interface ansValUsersArrInter {
+        quesId: string,
+        ansVal: string,
+        userName: string
+    }
+
+    interface percContainerInter{
+        quesId: number,
+        percentage: number,
+        users: string[]
+    }
+
+    // interface pollOptDataInter{
+    //     pollData: string,
+    //     pollOpt: pollOptDataOptIter[]
+    // }
+
+    interface leaderPollViewInter{
+        pollId: number,
+        quesId: number,
+        userName: string
+    }
+
+    interface clickedPollOptInter {
+        pollId: number,
+        quesId: number
+    }
+
     interface receivePollInter {
+        pollId: number,
         poll : string,
         data : pollOptInter[]
     }
@@ -116,7 +160,7 @@ function Meeting(){
     function controlling(){
         if(socket.id !== updatedData.leadersocket) return;
         setClickedControl(!clickedControl);
-        if(!clickedControl) {setMessage('please click on any participant to give control'); setLeftOpen(true);};
+        if(!clickedControl) {setRightOpen(false); setMessage('please click on any participant to give control'); setLeftOpen(true);};
     }
 
     function controllerAction(e:React.MouseEvent<HTMLElement>){
@@ -152,6 +196,11 @@ function Meeting(){
     function pollClicked(){
         setClickedQues(false);
         if(doubtType == 'poll'){
+            if(pollOptions.length <= 0){
+                setDoubtType('');
+                setClickedPoll(false);
+                return
+            };
             if(mainPollVal){
                 const check = pollOptions.some((e)=>{
                     return !e.value
@@ -165,6 +214,7 @@ function Meeting(){
                     setPollOptions([])
                     setNoOfDoubtInput(0)
                     setMainPollVall('')
+                    setViewDoubtType(true);
                 }
             }
             setDoubtType('');
@@ -175,8 +225,193 @@ function Meeting(){
         setClickedPoll(true);
     }
 
+    function quesClicked(){
+        setClickedPoll(false);
+        if(doubtType == 'ques'){
+            if(qoubtQuesInpVal.length <= 0){
+                setDoubtType("");
+                setClickedQues(false);
+                return;
+            };
+            socket.emit('ques', {
+                'roomId': roomId,
+                'val': qoubtQuesInpVal
+            })
+            setQoubtQuesInpVal('');
+            setDoubtType('')
+            setClickedQues(false);
+            setViewDoubtType(false);
+            return;
+        }
+        setDoubtType('ques');
+        setClickedQues(true);
+    }
+
+    function pollOptClick(e: React.MouseEvent<HTMLElement>){
+        if(socket.id == updatedData.leadersocket) return;
+        const pollId = e.currentTarget.dataset.pollid;
+        if (clickedPollOptManager.some((e)=>{ return e.pollId == Number(pollId)})) return;
+        console.log('sending to leaderSocket:', updatedData.leadersocket); 
+        console.log('my socket:', socket.id); 
+        const userName = updatedData.participants.filter((e)=>{
+            return e.socket_id == socket.id
+        })[0].name
+        const id = e.currentTarget.dataset.id;
+        socket.emit('pollOpt', {
+            'quesId' : Number(id),
+            'userName' : userName,
+            'leaderSocket' : updatedData.leadersocket,
+            'pollId': pollId
+        })
+        setClickedPollOptManager((prev:any)=>{
+            return [...prev ?? [] , {quesId: id, pollId: pollId}];
+        })
+    }
+
+    function pollViewFunc(e: React.MouseEvent<HTMLElement>) {
+        const pollId = e.currentTarget.dataset.pollid;
+        if (!pollId) return;
+        const id = Number(pollId);
+        setSelectedPollId(id);
+        calculatePerc(id);  
+        setIsView(true);
+    }
+
+    function calculatePerc(pollId: number) {
+        const users = leaderPollArr.filter((e) => e.pollId === pollId);
+
+        const total = users.length;
+
+        if (total <= 0) {
+            setPercContainer(prev => ({
+                ...prev,
+                [pollId]: []
+            }));
+            return;
+        }
+
+        const countMap: Record<number, { count: number; users: string[] }> = {};
+
+        users.forEach((u) => {
+            if (!countMap[u.quesId]) {
+                countMap[u.quesId] = {
+                    count: 0,
+                    users: []
+                };
+            }
+
+            countMap[u.quesId].count += 1;
+            countMap[u.quesId].users.push(u.userName);
+        });
+
+        const quesCountArr: Array<percContainerInter> =
+            Object.entries(countMap).map(([quesId, val]) => ({
+                quesId: Number(quesId),
+                percentage: Number(
+                    ((val.count / total) * 100).toFixed(1)
+                ),
+                users: val.users
+            }));
+
+        setPercContainer(prev => ({
+            ...prev,
+            [pollId]: quesCountArr
+        }));
+    }
+
+    function viewUsersOpt(e: React.MouseEvent<HTMLElement>){
+        setCheckPollOpt(!checkPollOpt);
+        const users = e.currentTarget.dataset.users;
+        if(users == null) return;
+        const usersArr = JSON.parse(users);
+        setViewUsersArr(usersArr);
+    }
+
+    function sendAns(e: React.MouseEvent<HTMLElement>) {
+        const quesId = Number(e.currentTarget.dataset.quesid);
+        setCheckAnsSend((prev) => [...prev ?? [], quesId]);
+        if (!quesId) return;
+
+        const perQuesVal = ansVal[quesId - 1]; 
+        if (!perQuesVal || perQuesVal.length <= 0) return;
+
+        const userName = updatedData.participants?.find((e) => {
+            return socket.id == e.socket_id;
+        })?.name;
+        if (!userName) return;
+
+        socket.emit('ansVal', {
+            'leadersocket': updatedData.leadersocket,
+            'ansVal': perQuesVal,
+            'userName': userName,
+            'quesId': quesId
+        });
+    }
+
+    useEffect(()=>{
+        function ansValReceive(data:any){
+            const {ansVal, userName, quesId} = data;
+            setAnsValUsersArr((prev)=>{
+                return [...prev ?? [], {
+                    userName: userName,
+                    quesId: quesId,
+                    ansVal: ansVal
+                }]
+            })
+        }
+        socket.on('ansValReceive', ansValReceive);
+        return ()=>{socket.off('ansValReceive', ansValReceive)}
+    }, [])
+
+    useEffect(()=>{
+        console.log(ansValUsersArr)
+    }, [ansValUsersArr])
+
+    useEffect(()=>{
+        function receiveQues(data:any){
+            // setViewDoubtType(false);
+            const {val} = data;
+            setAnsArr((prev:any)=>{
+                return [...prev ?? [], val]
+            });
+        }
+        socket.on('receiveQues', receiveQues);
+        return ()=>{socket.off('receiveQues', receiveQues)}
+    }, [])
+
+    useEffect(()=>{
+        console.log(ansArr)
+    }, [ansArr])
+
+    useEffect(()=>{
+        if(!checkPollOpt) setViewUsersArr([]);
+    }, [checkPollOpt])
+
+    useEffect(()=>{
+        console.log(viewUsersArr)
+    }, [viewUsersArr])
+
+    useEffect(() => {
+        if (selectedPollId === null) return;
+
+        calculatePerc(selectedPollId);
+
+    }, [leaderPollArr, selectedPollId]);
+
+    useEffect(()=>{
+        function pollOptRecieve(data:any){
+            const {quesId, userName, pollId} = data;
+            setLeaderPollArr((prev)=>{
+                return [...prev ?? [], {pollId: Number(pollId), quesId: Number(quesId), userName: userName}]
+            })
+        }
+        socket.on('pollOptRecieve', pollOptRecieve);
+        return ()=>{socket.off('pollOptRecieve', pollOptRecieve)}
+    }, [])
+
     useEffect(()=>{
         function onReceivePoll(e: any){
+            // setViewDoubtType(true);
             setReceivePoll((prev)=>{
                 return [...prev ?? [], e]
             })
@@ -372,7 +607,7 @@ function Meeting(){
                     </div>
                         {updatedData?.participants?.length?
                             updatedData?.participants.map((e, i)=>{
-                                return <div className="participantsEle" style={controller == e.socket_id? {'backgroundColor': '#4f9a57ff', 'color': 'white'}:{}} data-socket={e.socket_id} onClick={controllerAction} tabIndex={i}>
+                                return <div key={i} className="participantsEle" style={controller == e.socket_id? {'backgroundColor': '#4f9a57ff', 'color': 'white'}:{}} data-socket={e.socket_id} onClick={controllerAction} tabIndex={i}>
                                     <UserAvatar e={e.socket_id}/>
                                     {e.name.length > 5 ? (e.name.slice(0, 4) + '...') : e.name}
                                 </div>
@@ -400,14 +635,63 @@ function Meeting(){
                 <div className={socket.id == updatedData.leadersocket? 'doubts': 'doubtsParticipant'}>
                     <div className="doubtsHeader">Questions</div>
                     <div className="doubtsContainer">
+                        {doubtType == ''? 
+                            <div className="viewerDoubtContainer">
+                                <div className="doubtsMainBtn">
+                                    <button className="pollSwitch" onClick={()=>{setViewDoubtType(true)}}>Poll</button>
+                                    <button className="quesSwitch" onClick={()=>{setViewDoubtType(false)}}>Quess</button>
+                                </div>
+                                {viewDoubtType ? 
+                                <div className="viewPoll">
+                                   {receivePoll.map((poll)=>{
+                                    return (
+                                        <div className="poll" key={poll.pollId}>
+                                            <div className="pollMainQues">{poll.poll}</div>
+                                            {socket.id == updatedData.leadersocket ? (
+                                                <div className="pollView" data-pollid={poll.pollId} onClick={pollViewFunc}>
+                                                    <FontAwesomeIcon icon={faMaximize}/>
+                                                </div>
+                                            ) : ''}
+                                            {poll.data.map((opt)=>{
+                                                return (
+                                                    <div className="pollOpt" data-id={opt.id} data-pollid={poll.pollId} style={clickedPollOptManager.some((ei)=>{
+                                                        return (
+                                                            ei.quesId == opt.id &&
+                                                            ei.pollId == poll.pollId
+                                                        )})? {'backgroundColor': 'rgba(255, 0, 0, 0.856)'}: {}
+                                                    } onClick={pollOptClick}  key={opt.id}>
+                                                        {opt.id}: {opt.value}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    )
+                                })}
+                                </div>
+                                :
+                                <div className="viewQues">
+                                    {ansArr.map((e, i)=>{
+                                        return <div className="ansEle" key={i}>
+                                            <div className="ansValEle">
+                                                {i + 1}: {e}
+                                                {socket.id == updatedData.leadersocket ? <FontAwesomeIcon icon={faMaximize}/> : ''}
+                                            </div>
+                                            {socket.id == updatedData.leadersocket ? '' : <input maxLength={500} type="text" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAnsVal(prev => ({ ...prev, [i]: e.target.value }));}} value={ansVal[i] ?? ''} className="ansInp"></input> }
+                                            {socket.id == updatedData.leadersocket ? '': <button data-quesid={i+1} disabled={checkAnsSend.includes(i + 1)} onClick={sendAns} className="sendAnsBtn">Send</button>}
+                                        </div>
+                                    })}
+                                </div>
+                                }
+                            </div>
+                        : ''}
                         {
                             doubtType.length > 0? (doubtType == 'poll'?
                             <div className="doubtPoll">
-                                <input type='text' value={mainPollVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMainPollVall(e.target.value)}} placeholder="Enter here"/>
+                                <input type='text' className="doubtPollInput" maxLength={250} value={mainPollVal} onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setMainPollVall(e.target.value)}} placeholder="Enter question here"/>
                                 <div className="addDoubtBtnContianer">
                                     {
                                         Array.from({length: noOfDoubtInput}, (_, i)=>{
-                                            return <input type="text" value={pollOptions[i].value} onChange={(m:React.ChangeEvent<HTMLInputElement>)=>{setPollOptions((prev)=>{
+                                            return <input placeholder="Enter option here" type="text" maxLength={25} value={pollOptions[i].value} onChange={(m:React.ChangeEvent<HTMLInputElement>)=>{setPollOptions((prev)=>{
                                                 return prev.map((e, ind)=>{
                                                     return ind == i ? {...e, value: m.target.value} : e
                                                 })
@@ -419,17 +703,27 @@ function Meeting(){
                                             id: noOfDoubtInput + 1
                                         }]
                                     })}}>Add</button>
-                                    <button className="removeDoubtBtn" onClick={()=>{pollOptions.pop();setNoOfDoubtInput(noOfDoubtInput-1)}}>Remove</button>
+                                   <button
+                                        className="removeDoubtBtn"
+                                        onClick={()=>{
+                                            if(noOfDoubtInput == 0) return;
+                                            setPollOptions((prev)=>{
+                                                return prev.slice(0, -1);
+                                            });
+                                            setNoOfDoubtInput((prev)=> prev - 1);
+                                        }}
+                                    >Remove</button>
                                 </div>
                             </div>:
                             <div className="doubtQues">
+                                <input type="text" maxLength={250} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{setQoubtQuesInpVal(e.target.value)}} value={qoubtQuesInpVal} className="doubtQuesInp" />
                             </div>) : ''
                         }
                     </div>
                     <div className="doubtsInputContainer">
                         {socket.id == updatedData.leadersocket && <div className="doubtBtnContainer">
                             <button onClick={pollClicked} className="doubtBtn" style={{'height': '100%', 'width': '20%'}}>{clickedPoll ? 'Send': 'Poll'}</button>
-                            <button className="doubtBtn0" onClick={()=>{setClickedPoll(false); if(doubtType == 'ques'){setDoubtType(''); setClickedQues(false); return};setDoubtType('ques'); setClickedQues(true);}} style={{'height': '100%', 'width': '20%'}}>{clickedQues? 'Send': 'Ques'}</button>
+                            <button className="doubtBtn0" onClick={quesClicked} style={{'height': '100%', 'width': '20%'}}>{clickedQues? 'Send': 'Ques'}</button>
                         </div>}
                     </div>
                 </div>
@@ -457,9 +751,48 @@ function Meeting(){
                 </div>
             })}
         </div>}
+        <div className={isView?'leaderPollView transistPollView': 'leaderPollView'}>
+            <div className='crossPoll' onClick={()=>{setIsView(false)}}><FontAwesomeIcon style={{'fontSize': 'larger'}} icon={faSquareXmark}/></div>
+            {viewDoubtType?
+            <div className="leaderPollViewData leaderPollViewDataTrue">
+                <div className="checkPollLeft">
+                    {
+                        selectedPollId !== null && receivePoll.find((p)=> p.pollId === selectedPollId) &&
+                        (
+                            <div className="checkPollHead">
+                                {
+                                    receivePoll.find((p)=> p.pollId === selectedPollId)?.poll
+                                }
+                            </div>
+                        )
+                    }
+                    { receivePoll.find((p)=> p.pollId === selectedPollId) ?.data.map((e)=>{
+                        return <div onClick={viewUsersOpt} data-users={
+                            selectedPollId !== null && percContainer[selectedPollId]?.length > 0 ? JSON.stringify(percContainer[selectedPollId].find((l)=>{
+                                return l.quesId === Number(e.id)
+                            })?.users):null
+                        } className="checkPollOpt">
+                            <div className="overlapCheckPoll" style={{
+                                width: selectedPollId !== null && percContainer[selectedPollId]?.length > 0
+                                    ? `${percContainer[selectedPollId].find((ef) => ef.quesId === Number(e.id))?.percentage ?? 0}%`
+                                    : '0%'
+                            }}></div>
+                            {e.id}: {e.value}
+                        </div>
+                    })}
+                </div>
+                <div className={checkPollOpt ? 'checkPollRight transistCheckPollRight': 'checkPollRight'}>
+                    {viewUsersArr.length > 0? viewUsersArr.map((e)=>{
+                        return <div className={checkPollOpt ? 'viewUserArrEle viewUserArrEleTransist' : 'viewUserArrEle'}>{e.length > 6 ? `${e.slice(0, 5)}...`: e}</div>
+                    }): <p style={{'textAlign': 'center'}}>No user has selected this option 😄</p>}
+                </div>
+            </div>
+            :
+            <div className="leaderPollViewData leaderPollViewDataFalse"></div>
+            }
+        </div>
     </div>
     )
 }
-
 export default Meeting;
 

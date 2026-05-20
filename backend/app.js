@@ -116,10 +116,40 @@ io.on('connection', (socket)=>{
     })
 
     socket.on('poll', (e)=>{
-      const {roomId, data, poll} =e;
+      const {roomId, data, poll} = e;
+
+      const pollId = Date.now();
+
       io.to(roomId).emit('receivePoll', {
-        'poll': poll,
-        'data': data
+        pollId,
+        poll,
+        data
+      })
+    })
+
+    socket.on('pollOpt', ({quesId, userName, leaderSocket, pollId})=>{
+      console.log('in backedn', userName)
+      socket.to(leaderSocket).emit('pollOptRecieve', {
+        'quesId': quesId,
+        'userName': userName,
+        'pollId': pollId
+      })
+    })
+
+    socket.on('ques', (data)=>{
+      const {roomId, val} = data;
+      console.log(data);
+      io.to(roomId).emit('receiveQues', {
+        'val': val
+      })
+    })
+
+    socket.on('ansVal', (data)=>{
+      const {leadersocket, ansVal, userName, quesId} = data;
+      socket.to(leadersocket).emit('ansValReceive', {
+        'userName': userName,
+        'ansVal': ansVal,
+        'quesId': quesId
       })
     })
 })
