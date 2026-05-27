@@ -48,6 +48,8 @@ function Meeting(){
     const [ansVal, setAnsVal] = useState<Record<number, string>>({});
     const [ansValUsersArr, setAnsValUsersArr] = useState<Array<ansValUsersArrInter>>([]);
     const [checkAnsSend, setCheckAnsSend] = useState<Array<number>>([]);
+    const [ansListingEleClicked, setAnsListingEleClicked] = useState<boolean>(false);
+    const [filteredAnsArr, setFilteredAnsArr] = useState<Array<ansValUsersArrInter>>([]);
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -66,6 +68,12 @@ function Meeting(){
     const controllerReff = useRef(controller);
 
     type doubtT = 'poll' | 'ques' | '';
+
+    // interface filteredAnsArrInter{
+    //     userName: string,
+    //     quesId: number,
+    //     ansVal: string
+    // }
 
     interface ansValUsersArrInter {
         quesId: string,
@@ -348,6 +356,17 @@ function Meeting(){
         });
     }
 
+    function ansListingClickFunc(e: React.MouseEvent<HTMLElement>){
+        const id = e.currentTarget.dataset.id;
+        if (!id) return;
+        setAnsListingEleClicked(!ansListingEleClicked);
+        const filter = ansValUsersArr.filter((e)=>{
+            return id == e.quesId
+        })
+        if(!filter) return;
+        setFilteredAnsArr(filter)
+    }
+
     useEffect(()=>{
         function ansValReceive(data:any){
             const {ansVal, userName, quesId} = data;
@@ -364,8 +383,8 @@ function Meeting(){
     }, [])
 
     useEffect(()=>{
-        console.log(ansValUsersArr)
-    }, [ansValUsersArr])
+        console.log('from front', filteredAnsArr)
+    }, [filteredAnsArr])
 
     useEffect(()=>{
         function receiveQues(data:any){
@@ -583,7 +602,7 @@ function Meeting(){
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [updatedData.live_chat]);
-
+    
     if(!roomId){
         return <>Oops! Something went wrong</>
     }
@@ -638,8 +657,8 @@ function Meeting(){
                         {doubtType == ''? 
                             <div className="viewerDoubtContainer">
                                 <div className="doubtsMainBtn">
-                                    <button className="pollSwitch" onClick={()=>{setViewDoubtType(true)}}>Poll</button>
-                                    <button className="quesSwitch" onClick={()=>{setViewDoubtType(false)}}>Quess</button>
+                                    <button className="pollSwitch" onClick={()=>{setViewDoubtType(true); setIsView(false)}}>Poll</button>
+                                    <button className="quesSwitch" onClick={()=>{setViewDoubtType(false); setIsView(false)}}>Quess</button>
                                 </div>
                                 {viewDoubtType ? 
                                 <div className="viewPoll">
@@ -674,10 +693,12 @@ function Meeting(){
                                         return <div className="ansEle" key={i}>
                                             <div className="ansValEle">
                                                 {i + 1}: {e}
-                                                {socket.id == updatedData.leadersocket ? <FontAwesomeIcon icon={faMaximize}/> : ''}
+                                                {socket.id == updatedData.leadersocket ? <div className="expandQuesBtn" onClick={()=>{setIsView(!isView)}}><FontAwesomeIcon icon={faMaximize}/></div> : ''}
                                             </div>
-                                            {socket.id == updatedData.leadersocket ? '' : <input maxLength={500} type="text" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAnsVal(prev => ({ ...prev, [i]: e.target.value }));}} value={ansVal[i] ?? ''} className="ansInp"></input> }
-                                            {socket.id == updatedData.leadersocket ? '': <button data-quesid={i+1} disabled={checkAnsSend.includes(i + 1)} onClick={sendAns} className="sendAnsBtn">Send</button>}
+                                            {socket.id == updatedData.leadersocket ? '' : <div className="sendAnsContainer">
+                                                <input maxLength={500} type="text" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAnsVal(prev => ({ ...prev, [i]: e.target.value }));}} value={ansVal[i] ?? ''} className="ansInp"/>
+                                                <button data-quesid={i+1} disabled={checkAnsSend.includes(i + 1)} onClick={sendAns} className="sendAnsBtn">Send</button>
+                                            </div>}
                                         </div>
                                     })}
                                 </div>
@@ -716,7 +737,8 @@ function Meeting(){
                                 </div>
                             </div>:
                             <div className="doubtQues">
-                                <input type="text" maxLength={250} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{setQoubtQuesInpVal(e.target.value)}} value={qoubtQuesInpVal} className="doubtQuesInp" />
+                                <h6>Please write your ques in the input below</h6>
+                                <input type="text" maxLength={250} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{setQoubtQuesInpVal(e.target.value)}} value={qoubtQuesInpVal} placeholder="Enter here" className="doubtQuesInp" />
                             </div>) : ''
                         }
                     </div>
@@ -788,7 +810,22 @@ function Meeting(){
                 </div>
             </div>
             :
-            <div className="leaderPollViewData leaderPollViewDataFalse"></div>
+            <div className="leaderPollViewData leaderPollViewDataFalse">
+                <div className={ansListingEleClicked ? 'quesListing quesListingTransist': 'quesListing'}>
+                    {ansArr.map((e, i)=>{
+                        return <div onClick={ansListingClickFunc} data-id={i+1} className="quesListingEle">{e}</div>
+                    })}
+                </div>
+                <div className={ansListingEleClicked ? 'userAns userAnsTransist': 'userAns'}>
+                    {filteredAnsArr?.length > 0 ? filteredAnsArr.map((e, i) => (
+                            <div className="userAnsEle" key={i}>
+                                <h4>{e.userName}</h4>
+                                <p>{e.ansVal}</p>
+                            </div>
+                        )): <p>No user has answered 🙂</p>
+                    }
+                </div>
+            </div>
             }
         </div>
     </div>
