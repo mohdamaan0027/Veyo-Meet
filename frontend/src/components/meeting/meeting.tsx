@@ -7,10 +7,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleRight,faSquareXmark } from '@fortawesome/free-solid-svg-icons';
 import {faAngleUp} from '@fortawesome/free-solid-svg-icons';
 import {faUserGroup} from '@fortawesome/free-solid-svg-icons';
-import {faMaximize} from '@fortawesome/free-solid-svg-icons';
+import {faMaximize, faRightFromBracket} from '@fortawesome/free-solid-svg-icons';
 import UserAvatar from "./components/userAvatar.tsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+// import ping from 'ping';
 // import axios from "axios";
 
 function Meeting(){
@@ -50,6 +51,8 @@ function Meeting(){
     const [checkAnsSend, setCheckAnsSend] = useState<Array<number>>([]);
     const [ansListingEleClicked, setAnsListingEleClicked] = useState<boolean>(false);
     const [filteredAnsArr, setFilteredAnsArr] = useState<Array<ansValUsersArrInter>>([]);
+    const [hasCopied, setHasCopied] = useState<boolean>(false);
+    const [pingVal, setPingVal] = useState<number>();
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -367,6 +370,58 @@ function Meeting(){
         setFilteredAnsArr(filter)
     }
 
+    async function copyId(){
+        await navigator.clipboard.writeText(roomId);
+        setHasCopied(true);
+    }
+
+    async function exitMeeting(){
+        if(!socket.id) return;
+        let isLeader:boolean = false;
+        if(socket.id == updatedData.leadersocket){
+            isLeader = true;
+        }else { isLeader = false };
+        const userName = socket.id == updatedData.leadersocket? updatedData.leadername : updatedData.participants.find((e)=>{
+            return e.socket_id == socket.id
+        })?.name;
+        if(!isLeader){
+            try {
+                await axios.post('http://localhost:3000/meeting/removeUser', {'roomId':roomId, 'socketId': socket.id});
+            } catch (error) {
+                console.log(error);
+            }
+        }
+        socket.emit('exitMeeting', {
+            'roomId': roomId,
+            'socketId': socket.id,
+            'isLeader': isLeader,
+            'userName': userName ? userName : 'NaN'
+        });
+        navigate('/home');
+    }
+
+    useEffect(()=>{
+        function userExitMessage(data:any){
+            const latestData = updatedDataReff.current;
+            const {socketId, isLeader, userName} = data;
+            if(isLeader){
+                setMessage(`room ended as leader left 😁`);
+            }else{
+                const newParticipants = latestData.participants.filter((e)=>{
+                    return e.socket_id !== socketId
+                })
+                setUpdatedData((prev)=>{
+                    return {
+                        ...prev, participants: newParticipants
+                    }
+                });
+                setMessage(`user left with name: ${userName}`);
+            }
+        }
+        socket.on('userExitMessage', userExitMessage);
+        return ()=>{socket.off('userExitMessage', userExitMessage)}
+    }, [])
+
     useEffect(()=>{
         function ansValReceive(data:any){
             const {ansVal, userName, quesId} = data;
@@ -602,6 +657,21 @@ function Meeting(){
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [updatedData.live_chat]);
+
+    useEffect(() => {
+        const measurePing = async () => {
+            const start = performance.now();
+            try {
+                await axios.get('/ping');
+                setPingVal(Math.round(performance.now() - start));
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        measurePing();
+        const interval = setInterval(measurePing, 5000);
+        return () => clearInterval(interval);
+    }, []);
     
     if(!roomId){
         return <>Oops! Something went wrong</>
@@ -613,8 +683,15 @@ function Meeting(){
             <p className="meetingText">{message}</p>
             <button className="endBtn">Close</button>
         </div> : ''}
-
-        <div className="section1"></div>
+        <div className="section1">
+            <div className="section1Container">
+                <div className="meetingLogo">Logo</div>
+                <div className="meetingGroupId" onClick={copyId} style={{'color': '#346739'}}><span style={{'color': '#2d3436', 'marginRight': '4px'}}>RoomId:</span>{roomId ? <p style={hasCopied ? {'textDecoration': 'line-through', 'cursor': 'not-allowed'} : {'cursor':'copy'}}>{roomId}</p> : 'Error'}</div>
+                <div className="meetingLeaderName" style={{'color': '#346739'}}><span style={{'color': '#2d3436', 'marginRight': '4px'}}>Leadername:</span>{updatedData.leadername? updatedData.leadername.slice(0, 5) + '..' : 'Error'}</div>
+                <div className="meetingNetwork">Network: {pingVal ? pingVal : '🛜'}ms</div>
+                <div className="exitMeeting" onClick={exitMeeting}><FontAwesomeIcon className="exitMeetingExitEle" icon={faRightFromBracket}/>Exit</div>
+            </div>
+        </div>
 
         <div className="section2">
             <div className={`participants middleLeft ${leftOpen ? "showLeft" : ""}`}>
@@ -696,8 +773,8 @@ function Meeting(){
                                                 {socket.id == updatedData.leadersocket ? <div className="expandQuesBtn" onClick={()=>{setIsView(!isView)}}><FontAwesomeIcon icon={faMaximize}/></div> : ''}
                                             </div>
                                             {socket.id == updatedData.leadersocket ? '' : <div className="sendAnsContainer">
-                                                <input maxLength={500} type="text" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAnsVal(prev => ({ ...prev, [i]: e.target.value }));}} value={ansVal[i] ?? ''} className="ansInp"/>
-                                                <button data-quesid={i+1} disabled={checkAnsSend.includes(i + 1)} onClick={sendAns} className="sendAnsBtn">Send</button>
+                                                <input maxLength={500} style={{'padding': '5px'}} readOnly={checkAnsSend.includes(i + 1)} placeholder="Enter here" type="text" onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setAnsVal(prev => ({ ...prev, [i]: e.target.value }));}} value={ansVal[i] ?? ''} className="ansInp"/>
+                                                <button data-quesid={i+1} style={{'textDecoration': checkAnsSend.includes(i + 1) ? 'line-through' : 'none'}} disabled={checkAnsSend.includes(i + 1)} onClick={sendAns} className="sendAnsBtn">Send</button>
                                             </div>}
                                         </div>
                                     })}
@@ -744,8 +821,8 @@ function Meeting(){
                     </div>
                     <div className="doubtsInputContainer">
                         {socket.id == updatedData.leadersocket && <div className="doubtBtnContainer">
-                            <button onClick={pollClicked} className="doubtBtn" style={{'height': '100%', 'width': '20%'}}>{clickedPoll ? 'Send': 'Poll'}</button>
-                            <button className="doubtBtn0" onClick={quesClicked} style={{'height': '100%', 'width': '20%'}}>{clickedQues? 'Send': 'Ques'}</button>
+                            <button onClick={pollClicked} className="doubtBtn" style={{'height': '100%', 'width': '20%'}}>{clickedPoll ? 'Send': 'Add Poll'}</button>
+                            <button className="doubtBtn0" onClick={quesClicked} style={{'height': '100%', 'width': '20%'}}>{clickedQues? 'Send': 'Add Ques'}</button>
                         </div>}
                     </div>
                 </div>
@@ -760,7 +837,7 @@ function Meeting(){
                 {socket.id === updatedData.leadersocket?
                 <button style={!clickedControl? {'borderRight': '2px solid black'}: {'borderRight': '2px solid black', 'backgroundColor': '#346739ff', 'color': 'white'}} onClick={controlling} className="control">Control</button> : ''
                 }
-                <button className="leave">Leave</button>
+                <button className="leave">{socket.id == updatedData.leadersocket ? 'Capture':'Ask for Control' }</button>
             </div>
         </div>
 

@@ -185,15 +185,17 @@ function Home () {
                 room_join_id: latestSearchVal,
             });
 
+            console.log('from home', result.data)
+
             if (result.status === 200) {
                 console.log(result.data);
-
                 navigate("/meeting", {
                     state: {
                         data: result.data,
                     },
                 });
             }
+
         } catch (error) {
             console.log(error);
         }

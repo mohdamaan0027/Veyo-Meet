@@ -152,6 +152,18 @@ io.on('connection', (socket)=>{
         'quesId': quesId
       })
     })
+
+    socket.on('exitMeeting', async ({roomId, socketId, isLeader, userName})=>{
+      io.to(roomId).emit('userExitMessage', {
+        'socketId': socketId,
+        'isLeader': isLeader,
+        'userName': userName
+      })
+      if(isLeader){
+        await db.query('UPDATE rooms SET live = false WHERE room_id = $1', [roomId])
+        socket.leave(roomId);
+      }
+    })
 })
 
 export const db = new Client({

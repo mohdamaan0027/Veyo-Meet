@@ -279,4 +279,16 @@ const groupChat = async (req, res)=>{
     }
 }
 
-export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat};
+const removeUser = async (req, res)=>{
+    const {roomId, socketId} = req.body;
+    if(!roomId || !socketId) return;
+    try {
+        await db.query("UPDATE rooms SET participants = (SELECT jsonb_agg(p) FROM jsonb_array_elements(participants) AS p WHERE p->>'socket_id' <> $2)WHERE room_id = $1", [roomId, socketId]);
+        res.status(200).send('success');
+    } catch (error) {
+        console.log(error);
+        res.status(400).json(error);
+    }
+}
+
+export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat, removeUser};

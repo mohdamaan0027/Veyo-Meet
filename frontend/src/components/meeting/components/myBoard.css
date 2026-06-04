@@ -19,5 +19,9 @@ button.dropdown-menu-button.main-menu-trigger.zen-mode-transition{
 }
 
 .excalidraw-hyperlinkContainer .ToolIcon {
-  display: none !important;
+  display: none;
+}
+
+.sidebar-trigger{
+  display: none;
 }

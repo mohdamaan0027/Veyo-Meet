@@ -130,10 +130,6 @@
   color: #2d3436;
 }
 
-.section1{
-  background-color: red;
-}
-
 .section2 {
   display: grid;
   grid-template-columns: 2fr 6fr 2fr;
@@ -583,6 +579,7 @@
   border-radius: 5px;
   flex-shrink: 0;
   position: relative;
+  margin-bottom: 5px;
 }
 
 .expandQuesBtn{
@@ -924,6 +921,61 @@
 .quesListingEle:hover{
   background-color: aliceblue;
   font-size: 17px;
+  color: rgba(255, 0, 0, 0.856);
+}
+
+.section1{
+  height: 100%;
+  width: 100%;
+  transform: translateY(2px);
+  background-color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  flex-grow: 0;
+  margin: 0;
+}
+
+.section1Container{
+  margin: 0;
+  height: 80%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: white;
+  border: 2px solid black;
+  box-shadow: 5px 5px 0px black;
+  border-radius: 5px;
+  overflow-x: scroll;
+  scrollbar-width: none;
+}
+
+.section1Container div{
+  height: 100%;
+  width: 250px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-right: 1px solid black;
+}
+
+.section1Container div:last-child{
+  border-right: none;
+}
+
+.exitMeeting{
+  color: #2d3436;
+  font-size: larger;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.exitMeeting:hover{
   color: rgba(255, 0, 0, 0.856);
 }
 
