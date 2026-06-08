@@ -164,6 +164,37 @@ io.on('connection', (socket)=>{
         socket.leave(roomId);
       }
     })
+
+    socket.on("voice:join", ({ roomId, userName }) => {
+        socket.to(roomId).emit("voice:user-joined", {
+            socketId: socket.id,
+            userName,
+        });
+    });
+
+    socket.on("voice:offer", ({ to, offer, roomId }) => {
+        io.to(to).emit("voice:offer", { from: socket.id, offer });
+    });
+
+    socket.on("voice:answer", ({ to, answer, roomId }) => {
+        io.to(to).emit("voice:answer", { from: socket.id, answer });
+    });
+
+    socket.on("voice:ice-candidate", ({ to, candidate, roomId }) => {
+        io.to(to).emit("voice:ice-candidate", { from: socket.id, candidate });
+    });
+
+    socket.on("voice:leave", ({ roomId }) => {
+        socket.to(roomId).emit("voice:user-left", { socketId: socket.id });
+    });
+
+    socket.on('askForControl', ({leaderSocket, socketId, userName})=>{
+      socket.to(leaderSocket).emit('askForControlToLeader', {
+        socketId,
+        userName
+      })
+    })
+    
 })
 
 export const db = new Client({

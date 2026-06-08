@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import {socket} from '../home/home.tsx';
 import './meeting.css';
 import MyBoard from "./components/myBoard.tsx";
+import VoiceRoom from "./components/VoiceRoom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleRight,faSquareXmark } from '@fortawesome/free-solid-svg-icons';
 import {faAngleUp} from '@fortawesome/free-solid-svg-icons';
@@ -14,6 +15,8 @@ import axios from "axios";
 // import ping from 'ping';
 // import axios from "axios";
 
+import logo from '../imgs/WhatsApp_Image_2026-06-08_at_20.34.00-removebg-preview-2.png';
+
 function Meeting(){
 
     const location = useLocation();
@@ -23,6 +26,7 @@ function Meeting(){
     const [joinArr, setJoinArr] = useState<Array<joinData>>([]);
     const [leftOpen,setLeftOpen] = useState<boolean>(false);
     const [rightOpen,setRightOpen] = useState<boolean>(false);
+    const [hasOpenedRight, setHasOpenedRight] = useState<boolean>(false);
     const [message, setMessage] = useState<string>('');
     const [controller, setController] = useState<string>('');
     const [canControl, setCanControl] = useState<boolean>(false);
@@ -53,6 +57,9 @@ function Meeting(){
     const [filteredAnsArr, setFilteredAnsArr] = useState<Array<ansValUsersArrInter>>([]);
     const [hasCopied, setHasCopied] = useState<boolean>(false);
     const [pingVal, setPingVal] = useState<number>();
+    const [hasJustAsked, setHasJustAsked] = useState<boolean>(false);
+    const voiceRoomRef = useRef<{ toggleMute: () => void }>(null);
+    const [isMuted, setIsMuted] = useState(true);
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -400,6 +407,31 @@ function Meeting(){
         navigate('/home');
     }
 
+    function CapAndControl(){
+        if(socket.id == updatedData.leadersocket){
+            return;
+        }else {
+            if(hasJustAsked) return;
+            const userName = updatedData.participants.find((e)=>{
+                return e.socket_id == socket.id;
+            })?.name;
+            setHasJustAsked(true);
+            socket.emit('askForControl', {'leaderSocket': updatedData.leadersocket, 'socketId': socket.id, 'userName': userName});
+            setTimeout(()=>{
+                setHasJustAsked(false);
+            }, 10000)
+        }
+    }
+
+    useEffect(()=>{
+        function askForControlToLeader(data:any){
+            const {userName} = data;
+            setMessage(`${userName} wants to control the board`);
+        }
+        socket.on('askForControlToLeader', askForControlToLeader);
+        return ()=>{socket.off('askForControlToLeader', askForControlToLeader)}
+    })
+
     useEffect(()=>{
         function userExitMessage(data:any){
             const latestData = updatedDataReff.current;
@@ -678,6 +710,13 @@ function Meeting(){
     }
     
    return (
+    <>
+    <VoiceRoom
+    roomId={roomId}
+    userName={socket.id == updatedData.leadersocket ? updatedData.leadername : updatedData.participants.find(p => p.socket_id === socket.id)?.name || 'Guest'}
+    onMuteChange={(muted) => setIsMuted(muted)}
+    ref={voiceRoomRef}
+    />
     <div className="meetingBody">
         {message.length > 0 ? <div className="meetingMessage" onClick={checkMessage}>
             <p className="meetingText">{message}</p>
@@ -685,10 +724,10 @@ function Meeting(){
         </div> : ''}
         <div className="section1">
             <div className="section1Container">
-                <div className="meetingLogo">Logo</div>
-                <div className="meetingGroupId" onClick={copyId} style={{'color': '#346739'}}><span style={{'color': '#2d3436', 'marginRight': '4px'}}>RoomId:</span>{roomId ? <p style={hasCopied ? {'textDecoration': 'line-through', 'cursor': 'not-allowed'} : {'cursor':'copy'}}>{roomId}</p> : 'Error'}</div>
-                <div className="meetingLeaderName" style={{'color': '#346739'}}><span style={{'color': '#2d3436', 'marginRight': '4px'}}>Leadername:</span>{updatedData.leadername? updatedData.leadername.slice(0, 5) + '..' : 'Error'}</div>
-                <div className="meetingNetwork">Network: {pingVal ? pingVal : '🛜'}ms</div>
+                <div className="meetingLogo"><img className="meetingLogoImg" src={logo} alt="Logo" /></div>
+                <div className="meetingGroupId" onClick={copyId} style={{'color': '#346739'}}><span style={{'color': '#2d3436', 'marginRight': '4px'}}>RoomId:</span>{roomId ? <p style={hasCopied ? {'textDecoration': 'line-through', 'cursor': 'not-allowed', 'zIndex': 5} : {'cursor':'copy', 'zIndex': 5}}>{roomId}</p> : 'Error'}</div>
+                <div className="meetingLeaderName" style={{'color': '#346739'}}><span style={{'color': '#2d3436', 'marginRight': '4px'}}>Leadername:</span>{updatedData.leadername.length > 5 ?  updatedData.leadername.slice(0, 5) + '..' : updatedData.leadername}</div>
+                <div className="meetingNetwork">Network:{pingVal ? <p style={{'color': '#346739', 'marginLeft': '3px'}}>{pingVal}</p> : '🛜'}<span>ms</span></div>
                 <div className="exitMeeting" onClick={exitMeeting}><FontAwesomeIcon className="exitMeetingExitEle" icon={faRightFromBracket}/>Exit</div>
             </div>
         </div>
@@ -827,17 +866,17 @@ function Meeting(){
                     </div>
                 </div>
             </div>
-            <button className="leftBtn" onClick={()=>setLeftOpen(!leftOpen)}><FontAwesomeIcon icon={faAngleRight}/></button>
-            <button className="rightBtn" onClick={()=>setRightOpen(!rightOpen)}><FontAwesomeIcon icon={faAngleUp}/></button>
+            <button style={hasOpenedRight? {'visibility': 'hidden', 'pointerEvents': 'none'}: {'visibility': 'visible', 'pointerEvents': 'all'}} className="leftBtn" onClick={()=>{setLeftOpen(!leftOpen)}}><FontAwesomeIcon icon={faAngleRight}/></button>
+            <button className="rightBtn" onClick={()=>{setRightOpen(!rightOpen); if(rightOpen == true){setHasOpenedRight(false)} else setHasOpenedRight(true)}}><FontAwesomeIcon icon={faAngleUp}/></button>
         </div>
 
         <div className="section3">
             <div className="section3Container">
-                <button style={{'borderRight': '2px solid black'}} className="mic">Mic</button>
+                <button style={{ borderRight: '2px solid black', backgroundColor: isMuted ? '#e74c3c' : '', color: isMuted ? 'white' : '' }} className="mic" onClick={() => {voiceRoomRef.current?.toggleMute()}}>{isMuted ? 'Unmuted' : 'Mic'}</button>
                 {socket.id === updatedData.leadersocket?
                 <button style={!clickedControl? {'borderRight': '2px solid black'}: {'borderRight': '2px solid black', 'backgroundColor': '#346739ff', 'color': 'white'}} onClick={controlling} className="control">Control</button> : ''
                 }
-                <button className="leave">{socket.id == updatedData.leadersocket ? 'Capture':'Ask for Control' }</button>
+                <button onClick={CapAndControl} style={hasJustAsked? {'backgroundColor': '#2d3436', 'color': 'white'}: {}} className="leave">{socket.id == updatedData.leadersocket ? 'Capture':'Ask for Control' }</button>
             </div>
         </div>
 
@@ -906,7 +945,8 @@ function Meeting(){
             }
         </div>
     </div>
-    )
+    </>
+  );
 }
 export default Meeting;
 

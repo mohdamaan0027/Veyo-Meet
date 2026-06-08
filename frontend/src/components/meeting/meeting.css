@@ -951,6 +951,7 @@
   box-shadow: 5px 5px 0px black;
   border-radius: 5px;
   overflow-x: scroll;
+  overflow-y: hidden;
   scrollbar-width: none;
 }
 
@@ -977,6 +978,21 @@
 
 .exitMeeting:hover{
   color: rgba(255, 0, 0, 0.856);
+}
+
+.meetingLogo{
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;  
+}
+.meetingLogoImg{
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  transform: scale(6);
+  /* mix-blend-mode: multiply; */
 }
 
 @media screen and (max-width: 800px) {
