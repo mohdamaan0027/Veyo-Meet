@@ -4,9 +4,20 @@ import "@excalidraw/excalidraw/index.css";
 import './myBoard.css';
 import { socket } from "../../home/home.tsx";
 import { useLocation } from "react-router-dom";
-// import axios from "axios";
+import { exportToBlob } from "@excalidraw/excalidraw";
+import axios from "axios";
+import { forwardRef, useImperativeHandle } from "react";
+import html2canvas from "html2canvas";
 
-function MyBoard({controller}: {controller: boolean}) {
+export interface MyBoardRef {
+    captureAndUpload: () => Promise<void>;
+}
+
+interface Props {
+  controller: boolean;
+}
+
+const MyBoard = forwardRef< MyBoardRef, Props>(({ controller }, ref) => {
   const location = useLocation();
   const roomId = location?.state?.data?.room_id;
 
@@ -15,6 +26,7 @@ function MyBoard({controller}: {controller: boolean}) {
   const lastEle = useRef<string>("");
   const isDrawing = useRef(false);
   const hasReceivedInitialState = useRef(false); 
+  const boardContainerRef = useRef<HTMLDivElement>(null);
 
   const delay = useRef((e: any, delay: number) => {
     let last = 0;
@@ -26,6 +38,31 @@ function MyBoard({controller}: {controller: boolean}) {
       }
     };
   }).current;
+
+  async function captureAndUpload() {
+    if (!boardContainerRef.current) return;
+    const canvas = await html2canvas(boardContainerRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+    });
+    const blob: Blob | null = await new Promise((resolve) => {
+        canvas.toBlob(resolve, "image/png");
+    });
+    if (!blob) return;
+    const formData = new FormData();
+    formData.append(
+        "image",
+        blob,
+        `capture-${Date.now()}.png`
+    );
+    formData.append("roomId", roomId);
+    const res = await axios.post(
+        "http://localhost:3000/upload-capture",
+        formData
+    );
+    console.log(res.data.url);
+  }
 
   const emitChange = useCallback(
     delay((elements: any[], appState: any) => {
@@ -67,8 +104,12 @@ function MyBoard({controller}: {controller: boolean}) {
     return () => socket.off("whiteBoard", onWhiteboardChange);
   }, []);
 
+  useImperativeHandle(ref, () => ({
+    captureAndUpload
+  }));
+
   return (
-    <div className="meetingBoard">
+    <div className="meetingBoard" ref={boardContainerRef}>
       <Excalidraw
         viewModeEnabled={!controller}
         excalidrawAPI={(api) => (excalidrawAPI.current = api)}
@@ -94,8 +135,7 @@ function MyBoard({controller}: {controller: boolean}) {
       >
         <MainMenu />
       </Excalidraw>
-    </div>
-  );
-}
+    </div>);
+})
 
 export default MyBoard;

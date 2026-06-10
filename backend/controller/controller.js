@@ -3,6 +3,7 @@ import { transporter } from '../app.js';
 import bcrypt, { compareSync } from 'bcrypt';
 import {z} from 'zod';
 import jwt from 'jsonwebtoken';
+import cloudinary from "../config/cloudinary.js";
 
 let otpArr = [];
 
@@ -291,4 +292,39 @@ const removeUser = async (req, res)=>{
     }
 }
 
-export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat, removeUser};
+const uploadCapture = async (req, res) => {
+    try {
+        console.log("BODY:", req.body);
+        console.log("FILE EXISTS:", !!req.file);
+        if (!req.file) {
+            return res.status(400).json({
+                message: "No file received"
+            });
+        }
+        const { roomId } = req.body;
+
+        console.log("roomId:", roomId);
+        console.log("mimetype:", req.file.mimetype);
+        console.log("buffer size:", req.file.buffer.length);
+
+        const base64 = `data:${req.file.mimetype};base64,` + req.file.buffer.toString("base64");
+        console.log("starting cloudinary upload");
+        const result = await cloudinary.uploader.upload(base64, {
+            folder: `meeting-captures/${roomId}`,
+            public_id: `capture-${Date.now()}`
+        });
+        console.log("cloudinary success");
+        res.json({
+            url: result.secure_url,
+            publicId: result.public_id
+        });
+
+    } catch (err) {
+        console.error("UPLOAD ERROR:", err);
+        res.status(500).json({
+            message: err.message
+        });
+    }
+};
+
+export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat, removeUser, uploadCapture};

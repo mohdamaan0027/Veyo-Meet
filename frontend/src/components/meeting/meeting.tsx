@@ -2,7 +2,7 @@ import {useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {socket} from '../home/home.tsx';
 import './meeting.css';
-import MyBoard from "./components/myBoard.tsx";
+import MyBoard, { type MyBoardRef } from "./components/myBoard.tsx";
 import VoiceRoom from "./components/VoiceRoom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleRight,faSquareXmark } from '@fortawesome/free-solid-svg-icons';
@@ -60,6 +60,9 @@ function Meeting(){
     const [hasJustAsked, setHasJustAsked] = useState<boolean>(false);
     const voiceRoomRef = useRef<{ toggleMute: () => void }>(null);
     const [isMuted, setIsMuted] = useState(true);
+    const boardRef = useRef<MyBoardRef>(null);
+    const [hasJustClickedCapture, setHasJustClickedCapture] = useState<boolean>(false);
+
 
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
@@ -407,9 +410,14 @@ function Meeting(){
         navigate('/home');
     }
 
-    function CapAndControl(){
+    async function CapAndControl(){
         if(socket.id == updatedData.leadersocket){
-            return;
+            if(hasJustClickedCapture) return;
+            setHasJustClickedCapture(true);
+            await boardRef.current?.captureAndUpload();
+            setTimeout(()=>{
+                setHasJustClickedCapture(false);
+            }, 10000);
         }else {
             if(hasJustAsked) return;
             const userName = updatedData.participants.find((e)=>{
@@ -750,7 +758,7 @@ function Meeting(){
                         }
                 </div>
             </div>
-            <MyBoard controller = {canControl}/>
+            <MyBoard controller = {canControl} ref={boardRef}/>
             <div className={`middleRight ${rightOpen ? "showRight" : ""}`}>
                 <div className="groupChat">
                     <div className="groupChatHeader">Live Chat</div>
@@ -876,7 +884,7 @@ function Meeting(){
                 {socket.id === updatedData.leadersocket?
                 <button style={!clickedControl? {'borderRight': '2px solid black'}: {'borderRight': '2px solid black', 'backgroundColor': '#346739ff', 'color': 'white'}} onClick={controlling} className="control">Control</button> : ''
                 }
-                <button onClick={CapAndControl} style={hasJustAsked? {'backgroundColor': '#2d3436', 'color': 'white'}: {}} className="leave">{socket.id == updatedData.leadersocket ? 'Capture':'Ask for Control' }</button>
+                <button onClick={CapAndControl} style={hasJustAsked || hasJustClickedCapture? {'backgroundColor': '#2d3436', 'color': 'white'}: {}} className="leave">{socket.id == updatedData.leadersocket ? 'Capture':'Ask for Control' }</button>
             </div>
         </div>
 

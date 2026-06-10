@@ -21,6 +21,7 @@
     "@livekit/components-react": "^2.9.21",
     "@zxcvbn-ts/core": "^3.0.4",
     "axios": "^1.15.0",
+    "html2canvas": "^1.4.1",
     "livekit-client": "^2.19.1",
     "nanoid": "^5.1.11",
     "react": "^19.2.4",

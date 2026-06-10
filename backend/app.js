@@ -7,6 +7,7 @@ import nodemailer from 'nodemailer';
 import {Server} from 'socket.io';
 import {createServer} from 'http'
 // import { disconnect } from 'cluster';
+import cloudinary from "./config/cloudinary.js";
 
 dotenv.config();
 
@@ -20,6 +21,12 @@ const io = new Server(server, {
     origin: 'http://localhost:5173',
     methods: ['GET', 'POST']
   }
+});
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME ,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 io.on('connection', (socket)=>{
