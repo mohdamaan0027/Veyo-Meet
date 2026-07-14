@@ -173,10 +173,18 @@ io.on('connection', (socket)=>{
     })
 
     socket.on("voice:join", ({ roomId, userName }) => {
-        socket.to(roomId).emit("voice:user-joined", {
-            socketId: socket.id,
-            userName,
-        });
+        const room = io.sockets.adapter.rooms.get(roomId);
+
+        // Get existing users BEFORE joining
+        const existingUsers = room
+            ? [...room].filter(id => id !== socket.id)
+            : [];
+
+        socket.join(roomId);
+
+        socket.emit("voice:existing-users", existingUsers);
+
+        socket.to(roomId).emit("voice:user-joined", { socketId: socket.id });
     });
 
     socket.on("voice:offer", ({ to, offer, roomId }) => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from "react";
 import { socket } from "../../home/home.tsx";
 
 interface Props {
@@ -6,9 +6,6 @@ interface Props {
     userName: string;
     onMuteChange?: (isMuted: boolean) => void;
 }
-
-const peerConnections: Record<string, RTCPeerConnection> = {};
-const audioElements: Record<string, HTMLAudioElement> = {};
 
 const ICE_SERVERS = {
     iceServers: [
@@ -27,6 +24,12 @@ const VoiceRoom = forwardRef<{ toggleMute: () => void }, Props>(
         const isMutedRef = useRef(true);
         const onMuteChangeRef = useRef(onMuteChange);
 
+        const peerConnectionsRef = useRef<Record<string, RTCPeerConnection>>({});
+        const audioElementsRef = useRef<Record<string, HTMLAudioElement>>({});
+        const pendingCandidatesRef = useRef<Record<string, RTCIceCandidateInit[]>>({});
+        
+        const roomIdRef = useRef(roomId);
+
         useEffect(() => {
             onMuteChangeRef.current = onMuteChange;
         }, [onMuteChange]);
@@ -42,11 +45,14 @@ const VoiceRoom = forwardRef<{ toggleMute: () => void }, Props>(
             }
         }));
 
-        function createPeerConnection(targetSocketId: string): RTCPeerConnection {
-            if (peerConnections[targetSocketId]) {
-                return peerConnections[targetSocketId];
+        const createPeerConnectionRef = useRef((targetSocketId: string): RTCPeerConnection => {
+            const existing = peerConnectionsRef.current[targetSocketId];
+            if (existing) {
+                console.log("[PC] reusing existing pc for", targetSocketId);
+                return existing;
             }
 
+            console.log("[PC] creating new pc for", targetSocketId);
             const pc = new RTCPeerConnection(ICE_SERVERS);
 
             pc.onicecandidate = (event) => {
@@ -54,139 +60,203 @@ const VoiceRoom = forwardRef<{ toggleMute: () => void }, Props>(
                     socket.emit("voice:ice-candidate", {
                         to: targetSocketId,
                         candidate: event.candidate,
-                        roomId,
+                        roomId: roomIdRef.current,
                     });
                 }
             };
 
             pc.ontrack = (event) => {
-                if (audioElements[targetSocketId]) {
-                    audioElements[targetSocketId].srcObject = event.streams[0];
+                console.log("[PC] got track from", targetSocketId);
+                if (audioElementsRef.current[targetSocketId]) {
+                    audioElementsRef.current[targetSocketId].srcObject = event.streams[0];
                     return;
                 }
+
                 const audio = document.createElement("audio");
-                audio.srcObject = event.streams[0];
                 audio.autoplay = true;
                 audio.setAttribute("playsinline", "true");
+                audio.srcObject = event.streams[0];
+                audio.muted = false;
+
+                audio.onloadedmetadata = async () => {
+                    try {
+                        await audio.play();
+                    } catch (err) {
+                        console.warn("Audio play failed:", err);
+                    }
+                };
+
                 document.body.appendChild(audio);
-                audioElements[targetSocketId] = audio;
+                audioElementsRef.current[targetSocketId] = audio;
             };
 
-            localStreamRef.current?.getTracks().forEach((track) => {
-                pc.addTrack(track, localStreamRef.current!);
-            });
+            // pc.onconnectionstatechange = () => {
+            //     console.log("[CONNECTION]", targetSocketId, pc.connectionState);
+            // };
 
-            peerConnections[targetSocketId] = pc;
+            pc.oniceconnectionstatechange = () => {
+                console.log("[ICE]", targetSocketId, pc.iceConnectionState);
+            };
+
+            const stream = localStreamRef.current;
+            if (stream) {
+                stream.getTracks().forEach((track) => {
+                    pc.addTrack(track, stream);
+                });
+            } else {
+                console.warn("[PC] no local stream when creating PC for", targetSocketId);
+            }
+
+            peerConnectionsRef.current[targetSocketId] = pc;
             return pc;
-        }
+        });
 
-        function cleanupPeer(socketId: string) {
-            peerConnections[socketId]?.close();
-            delete peerConnections[socketId];
-            if (audioElements[socketId]) {
-                audioElements[socketId].srcObject = null;
-                audioElements[socketId].remove();
-                delete audioElements[socketId];
+        const cleanupPeerRef = useRef((socketId: string) => {
+            console.log("[PC] cleaning up", socketId);
+            peerConnectionsRef.current[socketId]?.close();
+            delete pendingCandidatesRef.current[socketId];
+            delete peerConnectionsRef.current[socketId];
+            if (audioElementsRef.current[socketId]) {
+                audioElementsRef.current[socketId].srcObject = null;
+                audioElementsRef.current[socketId].remove();
+                delete audioElementsRef.current[socketId];
             }
-        }
-
-        async function joinVoice() {
-            if (isJoinedRef.current) return;
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: isChromium ? {
-                        echoCancellation: true,
-                        noiseSuppression: false,
-                        autoGainControl: false,
-                        sampleRate: 48000,
-                    } : {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
-                    },
-                    video: false,
-                });
-
-                stream.getAudioTracks().forEach((track) => {
-                    track.enabled = false;
-                });
-
-                localStreamRef.current = stream;
-                isJoinedRef.current = true;
-                onMuteChangeRef.current?.(true);
-                socket.emit("voice:join", { roomId, userName });
-            } catch (err) {
-                console.error("Mic access denied:", err);
-            }
-        }
+        });
 
         useEffect(() => {
-            joinVoice();
+            const createPC = createPeerConnectionRef.current;
+            const cleanupPC = cleanupPeerRef.current;
 
-            async function onVoiceUserJoined(data: { socketId: string }) {
-                if (!localStreamRef.current) return;
-                const pc = createPeerConnection(data.socketId);
+            async function joinVoice() {
+                if (isJoinedRef.current) return;
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: isChromium ? {
+                            echoCancellation: true,
+                            noiseSuppression: false,
+                            autoGainControl: false,
+                            sampleRate: 48000,
+                        } : {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                        },
+                        video: false,
+                    });
 
-                if (pc.getTransceivers().length === 0) {
-                    pc.addTransceiver('audio', { direction: 'sendrecv' });
+                    stream.getAudioTracks().forEach((track) => {
+                        track.enabled = false;
+                    });
+
+                    localStreamRef.current = stream;
+                    isJoinedRef.current = true;
+                    onMuteChangeRef.current?.(true);
+                    socket.emit("voice:join", { roomId, userName });
+                } catch (err) {
+                    console.error("Mic access denied:", err);
                 }
-
-                const offer = await pc.createOffer({
-                    offerToReceiveAudio: true,
-                });
-                await pc.setLocalDescription(offer);
-                socket.emit("voice:offer", { to: data.socketId, offer, roomId });
             }
 
-            async function onVoiceOffer(data: { from: string; offer: RTCSessionDescriptionInit }) {
-                if (!localStreamRef.current) return;
-                const pc = createPeerConnection(data.from);
+            joinVoice();
 
-                if (pc.getTransceivers().length === 0) {
-                    pc.addTransceiver('audio', { direction: 'sendrecv' });
+            socket.on("voice:existing-users", async (users: string[]) => {
+                console.log("[VOICE] existing users", users);
+                for (const userId of users) {
+                    if (peerConnectionsRef.current[userId]) continue;
+                    const pc = createPC(userId);
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    socket.emit("voice:offer", { to: userId, offer, roomId });
+                }
+            });
+
+            socket.on("voice:user-joined", ({ socketId }: { socketId: string }) => {
+                console.log("[VOICE] new user joined", socketId);
+            });
+
+            async function onVoiceOffer(data: { from: string; offer: RTCSessionDescriptionInit }) {
+                if (!localStreamRef.current) {
+                    console.warn("[VOICE] got offer but no local stream yet");
+                    return;
+                }
+
+                console.log("[VOICE] offer received from", data.from, "signaling state will be checked");
+                const pc = createPC(data.from);
+
+                if (pc.signalingState !== "stable") {
+                    console.warn("[VOICE] skipping offer, state:", pc.signalingState);
+                    return;
                 }
 
                 await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+
+                const candidates = pendingCandidatesRef.current[data.from] || [];
+                for (const c of candidates) {
+                    try { await pc.addIceCandidate(new RTCIceCandidate(c)); }
+                    catch (e) { console.warn("candidate flush failed", e); }
+                }
+                delete pendingCandidatesRef.current[data.from];
+
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
                 socket.emit("voice:answer", { to: data.from, answer, roomId });
             }
 
             async function onVoiceAnswer(data: { from: string; answer: RTCSessionDescriptionInit }) {
-                const pc = peerConnections[data.from];
+                const pc = peerConnectionsRef.current[data.from];
+                console.log("[VOICE] answer from", data.from, "| pc state:", pc?.signalingState);
                 if (!pc) return;
+
+                if (pc.signalingState !== "have-local-offer") {
+                    console.warn("[VOICE] skipping answer, state:", pc.signalingState);
+                    return;
+                }
+
                 await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+
+                const candidates = pendingCandidatesRef.current[data.from] || [];
+                for (const c of candidates) {
+                    try { await pc.addIceCandidate(new RTCIceCandidate(c)); }
+                    catch (e) { console.warn("candidate flush failed", e); }
+                }
+                delete pendingCandidatesRef.current[data.from];
             }
 
             async function onIceCandidate(data: { from: string; candidate: RTCIceCandidateInit }) {
-                const pc = peerConnections[data.from];
-                if (!pc) return;
+                const pc = peerConnectionsRef.current[data.from];
+                if (!pc || !pc.remoteDescription) {
+                    if (!pendingCandidatesRef.current[data.from]) {
+                        pendingCandidatesRef.current[data.from] = [];
+                    }
+                    pendingCandidatesRef.current[data.from].push(data.candidate);
+                    return;
+                }
                 try {
                     await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-                } catch (e) {
-                    console.warn("ICE candidate error:", e);
+                } catch (err) {
+                    console.warn("ICE add failed", err);
                 }
             }
 
             function onVoiceUserLeft(data: { socketId: string }) {
-                cleanupPeer(data.socketId);
+                cleanupPC(data.socketId);
             }
 
-            socket.on("voice:user-joined", onVoiceUserJoined);
             socket.on("voice:offer", onVoiceOffer);
             socket.on("voice:answer", onVoiceAnswer);
             socket.on("voice:ice-candidate", onIceCandidate);
             socket.on("voice:user-left", onVoiceUserLeft);
 
             return () => {
-                Object.keys(peerConnections).forEach(cleanupPeer);
                 localStreamRef.current?.getTracks().forEach((t) => t.stop());
                 localStreamRef.current = null;
+                Object.keys(peerConnectionsRef.current).forEach(cleanupPC);
                 isJoinedRef.current = false;
                 isMutedRef.current = true;
                 socket.emit("voice:leave", { roomId });
 
-                socket.off("voice:user-joined", onVoiceUserJoined);
+                socket.off("voice:existing-users");
+                socket.off("voice:user-joined");
                 socket.off("voice:offer", onVoiceOffer);
                 socket.off("voice:answer", onVoiceAnswer);
                 socket.off("voice:ice-candidate", onIceCandidate);

@@ -142,6 +142,7 @@
     border-bottom-right-radius: 8px;
     border-bottom-left-radius: 8px;
     overflow: hidden;
+    flex-grow: 0;
 }
 .createMeetingSection{
     height: 100%;
@@ -151,7 +152,7 @@
     border-bottom-left-radius: 8px;
     overflow: hidden;
     gap: 20px;
-
+    flex-grow: 0;
 }
 .createMeetingSection{
     height: auto;
@@ -166,10 +167,11 @@
     margin: 10px 0;
     display: flex;
     align-items: center;
-    background-color: white;
+    background-color: re;
     border: 2px solid black;
     border-radius: 10px;
     overflow: hidden;
+    flex-shrink: 0;
 }
 .searchMeetingsInputContainer:focus-within{
     border-color: #346739;
@@ -195,6 +197,52 @@
     font-size: 20px;
     font-weight: 600;
     cursor: pointer;
+}
+.screenshotSection{
+    height: 100%;
+    width: 100%;
+    display: grid;
+    grid-template-rows: 1fr 9fr;
+    overflow: scroll;
+    min-height: 0;
+    min-width: 0;
+    max-width: 100%;
+    scrollbar-width: none;
+}
+.recordColumns, .recordEle{
+    display: grid;
+    grid-template-columns: repeat(5, 150px);
+    width: max-content;
+}
+
+.recordColumns > *, .recordEle > *{
+    margin: 2px;
+    padding: 8px;
+    min-height: 50px;
+    border: 1px solid black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: aliceblue;
+    border-radius: 2px;
+    font-size: medium;
+    font-weight: 600;
+    transition: 0.3s ease;
+}
+.recordRows{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.recordEle{
+    color: black;
+}
+.recordColumns *:hover{
+    background-color: rgb(208, 231, 252);
+}
+.recordEle *{
+    background-color: white;
+    font-weight: 400;
 }
 @media(max-width: 800px){
     .homeBody{

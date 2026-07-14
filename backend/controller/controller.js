@@ -327,4 +327,56 @@ const uploadCapture = async (req, res) => {
     }
 };
 
-export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat, removeUser, uploadCapture};
+const setRecord = async (req, res)=>{
+    const userRooms = req.body;
+    if(userRooms.length <= 0) return;
+    try {
+        const result = await db.query('select * from rooms where id = any($1)', [userRooms]);
+        res.status(200).json(result.rows.reverse().slice(0,24));
+    } catch (error) {
+        console.log(error);
+        res.status(400)
+    }
+}
+
+const downloadRecord = async (req, res) => {
+    const { roomId } = req.params;
+
+    try {
+        const cloudinaryResources = await cloudinary.api.resources({
+            type: "upload",
+            prefix: `meeting-captures/${roomId}/`,
+            max_results: 500,
+        });
+
+        if (cloudinaryResources.resources.length === 0) {
+            return res.status(404).send("No resources found");
+        }
+
+        const public_ids = cloudinaryResources.resources.map(
+            file => file.public_id
+        );
+
+        console.log(public_ids);
+
+        const zipUrl = cloudinary.utils.download_zip_url({
+            public_ids,
+            resource_type: "image",
+            flatten_folders: true,
+            filename: `meeting-record-${roomId}`,
+        });
+
+        return res.status(200).json({
+            message: "resource found",
+            zipUrl,
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            error: error.message,
+        });
+    }
+};
+
+export {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat, removeUser, uploadCapture,downloadRecord, setRecord};

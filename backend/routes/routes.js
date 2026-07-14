@@ -1,4 +1,4 @@
-import {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat, removeUser, uploadCapture} from '../controller/controller.js';
+import {auth, myOtp, otpCheck, submitPass, getMe, createMeeting, searchMeeting, joinUser, searchMe, groupChat, removeUser, uploadCapture, setRecord, downloadRecord} from '../controller/controller.js';
 import {check} from '../middleware/middleware.js';
 import express from 'express';
 import multer from 'multer';
@@ -21,6 +21,8 @@ router.post('/home/createMeeting', createMeeting);
 router.post('/home/searchMeeting', searchMeeting);
 router.post('/home/joinUser', joinUser);
 router.post('/home/searchMe', searchMe);
+router.post('/home/setRecord', setRecord);
+router.post('/home/downloadRecord/:roomId', downloadRecord);
 
 // meeting routes from here------->
 router.post('/meeting/groupChat', groupChat);

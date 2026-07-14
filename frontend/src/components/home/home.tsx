@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {io} from 'socket.io-client';
 import './home.css';
@@ -26,6 +26,7 @@ function Home () {
     const [myId, setMyId] = useState<string>('');
     const [hasCopied, setHasCopied] = useState<boolean>(false);
     const [disableEnter, setDisableEnter] = useState<boolean>(false);
+    const [clickedDownload, setClickedDownload] = useState<boolean>(false);
 
     const [meetingResults, setMeetingResults] = useState<results>({
         id: null,
@@ -36,6 +37,21 @@ function Home () {
         room_id: '',
         leadersocket: ''
     });
+
+    const [recordArr, setRecordArr] = useState<Array<recordInter>>();
+
+    interface recordInter{
+        room_id: string,
+        participants: Array<recordPartiInter>
+        leadername: string,
+        created_at: string
+    }
+
+    interface recordPartiInter{
+        id: number,
+        name: string,
+        socket_id: string
+    }
 
     interface results {
         id?: number | null,
@@ -152,6 +168,58 @@ function Home () {
             setDisableEnter(true);
         }else setWrongPass(true);
     }
+
+    async function resourceDownload(e: React.MouseEvent<HTMLElement>) {
+        const roomId = e.currentTarget.dataset.room;
+        if(clickedDownload) return;
+        try {
+            setClickedDownload(true);
+            const result = await axios.post(`http://localhost:3000/home/downloadRecord/${roomId}`);
+            if(result.status == 404){
+                alert('No resources found for this meeting');
+                setClickedDownload(false);
+                return;
+            }else {
+                const {zipUrl} = result.data;
+                const link = document.createElement('a');
+                link.href = zipUrl;
+                link.download = `resources_${roomId}.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(()=>{
+                    setClickedDownload(false);
+                }, 25000)
+            }
+        } catch (error) {
+            alert('No resource found for this meeting');
+            setClickedDownload(false);
+            console.log(error);
+        }
+    }
+
+    useEffect(()=>{
+        console.log('from home', recordArr);
+    }, [recordArr])
+
+    useEffect(()=>{
+        const latestUser = userRef.current
+        if(latestUser && latestUser.length <= 0) return;
+        async function setUpRecord(){
+            try {
+                console.log('we tried');
+                const userRooms = latestUser.rooms;
+                const result = await axios.post('http://localhost:3000/home/setRecord', userRooms);
+                if(result.status == 200){
+                    setRecordArr(result.data);
+                }
+            } catch (error) {
+                console.log(error);
+                return;
+            }
+        }
+        setUpRecord();
+    }, [user, socket.id])
 
     useEffect(() => {
         async function finalAcceptance(type: boolean) {
@@ -282,7 +350,30 @@ function Home () {
                             </div>
                             :
                             <div className="screenshotSection">
-                                thats screenshot section biraather
+                                <div className="recordColumns">
+                                    <div>Room Id</div>
+                                    <div>Leader Name</div>
+                                    <div style={{'fontSize': 'small', 'textAlign': 'center'}}>Number of Participants</div>
+                                    <div>Created At</div>
+                                    <div style={{'fontSize': 'small', 'textAlign': 'center'}}>Download Resources</div>
+                                </div>
+                                <div className="recordRows">
+                                    {
+                                        recordArr && recordArr?.length > 0 ? 
+                                        <div className="recordRows">
+                                            {recordArr?.map((record, i) => (
+                                                <div className="recordEle" key={i}>
+                                                    <div>{record.room_id}</div>
+                                                    <div>{record.leadername}</div>
+                                                    <div>{record.participants ? record.participants.length : 0}</div>
+                                                    <div style={{'fontSize': 'small', 'textAlign': 'center'}}>{new Date(record.created_at).toLocaleString()}</div>
+                                                    <div data-room={record.room_id} onClick={resourceDownload} style={!clickedDownload ? {'backgroundColor': 'whitesmoke','color': 'rgba(255, 0, 0, 0.856)', 'cursor': 'pointer', 'fontWeight': '600'} : {'backgroundColor': 'black','color': 'white', 'cursor':'not-allowed', 'fontWeight': '600', 'textDecoration': 'line-through'}}>Download</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        :''
+                                    }
+                                </div>
                             </div>
                         }
                     </div>

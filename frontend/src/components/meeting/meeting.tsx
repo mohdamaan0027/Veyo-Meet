@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState } from "react";
+import {useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import {socket} from '../home/home.tsx';
 import './meeting.css';
@@ -63,7 +63,6 @@ function Meeting(){
     const boardRef = useRef<MyBoardRef>(null);
     const [hasJustClickedCapture, setHasJustClickedCapture] = useState<boolean>(false);
 
-
     const [updatedData, setUpdatedData] = useState<results>({
         id: null,
         leader: '',
@@ -79,6 +78,17 @@ function Meeting(){
 
     const updatedDataReff = useRef(updatedData);
     const controllerReff = useRef(controller);
+
+    const voiceUserName = useMemo(() => {
+        return socket.id == updatedData.leadersocket
+            ? updatedData.leadername
+            : updatedData.participants.find(p => p.socket_id === socket.id)?.name || 'Guest';
+    }, [updatedData.leadersocket, updatedData.leadername, updatedData.participants]);
+
+    const handleMuteChange = useCallback((muted: boolean) => {
+        setIsMuted(muted);
+    }, []);
+
 
     type doubtT = 'poll' | 'ques' | '';
 
@@ -432,6 +442,14 @@ function Meeting(){
     }
 
     useEffect(()=>{
+        if(hasJustClickedCapture){
+            setTimeout(()=>{
+                setHasJustClickedCapture(false);
+            }, 10000)
+        }
+    }, [hasJustClickedCapture])
+
+    useEffect(()=>{
         function askForControlToLeader(data:any){
             const {userName} = data;
             setMessage(`${userName} wants to control the board`);
@@ -720,10 +738,10 @@ function Meeting(){
    return (
     <>
     <VoiceRoom
-    roomId={roomId}
-    userName={socket.id == updatedData.leadersocket ? updatedData.leadername : updatedData.participants.find(p => p.socket_id === socket.id)?.name || 'Guest'}
-    onMuteChange={(muted) => setIsMuted(muted)}
-    ref={voiceRoomRef}
+        roomId={roomId}
+        userName={voiceUserName}
+        onMuteChange={handleMuteChange}
+        ref={voiceRoomRef}
     />
     <div className="meetingBody">
         {message.length > 0 ? <div className="meetingMessage" onClick={checkMessage}>
