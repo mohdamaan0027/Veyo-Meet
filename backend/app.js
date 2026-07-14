@@ -213,11 +213,11 @@ io.on('connection', (socket)=>{
 })
 
 export const db = new Client({
-  user: 'postgres',
-  password: 'Amaan12@',
-  host: 'localhost',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  host:process.env.DB_HOST,
   port: 5432,
-  database: 'meeting',
+  database: process.env.DB_DATABASE
 })
 
 export const transporter = nodemailer.createTransport({
@@ -225,8 +225,8 @@ export const transporter = nodemailer.createTransport({
   port: 465,
   secure: true, 
   auth: {
-    user: 'altayf427@gmail.com',
-    pass: 'svdr lasm yuvz qjwz',
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
   },
 });
 
