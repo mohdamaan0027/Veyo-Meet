@@ -898,7 +898,7 @@ function Meeting(){
 
         <div className="section3">
             <div className="section3Container">
-                <button style={{ borderRight: '2px solid black', backgroundColor: isMuted ? '#e74c3c' : '', color: isMuted ? 'white' : '' }} className="mic" onClick={() => {voiceRoomRef.current?.toggleMute()}}>{isMuted ? 'Unmuted' : 'Mic'}</button>
+                <button style={{ borderRight: '2px solid black', backgroundColor: isMuted ? '#e74c3c' : '', color: isMuted ? 'white' : '' }} className="mic" onClick={() => {voiceRoomRef.current?.toggleMute()}}>{isMuted ? 'Unmute' : 'Mic'}</button>
                 {socket.id === updatedData.leadersocket?
                 <button style={!clickedControl? {'borderRight': '2px solid black'}: {'borderRight': '2px solid black', 'backgroundColor': '#346739ff', 'color': 'white'}} onClick={controlling} className="control">Control</button> : ''
                 }
